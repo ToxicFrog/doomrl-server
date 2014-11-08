@@ -31,17 +31,21 @@ HOME = None
 class RegisterCommand(object):
   """register <name> <pass> -- create a new account
 
-  Attempts to create (and log in to) a new user account. The username will be
-  used as your DoomRL username (and thus will appear on the high score list) and
-  has certain restrictions as a result: 24 character maximum, alphanumeric ASCII
-  only. The password can contain anything, including whitespace."""
+  Attempts to create (and log in to) a new user account. You can spectate and
+  view the high score list as a guest, but in order to actually play you need to
+  register.
+
+  The username will be used as both your login username and your DoomRL username
+  (and thus will appear on the high score list) and has certain restrictions as
+  a result: 24 character maximum, alphanumeric ASCII only. The password can
+  contain anything, including whitespace."""
 
   nargs = 2
 
   def name_valid(self, name):
     return 0 < len(name) <= 24 and bytes(name, encoding='utf8').isalnum()
 
-  def install(self, path, name, password):
+  def install(self, home, name, password):
     """Install a personal copy of DoomRL to the given path."""
     # The player needs their own personal player.wad, score.wad, and backup,
     # mortem and screenshot directories.
@@ -49,16 +53,16 @@ class RegisterCommand(object):
     # They get symlinks to colors.lua, config.lua, core.wad, doomrl, doomrl.wad,
     # and keybindings.lua.
     for file in ['player.wad', 'score.wad']:
-      shutil.copy(os.path.join(DOOMRL, file), path)
+      shutil.copy(os.path.join(DOOMRL, file), home)
     for file in ['core.wad', 'doomrl', 'doomrl.wad']:
-      os.symlink(os.path.join(DOOMRL, file), os.path.join(path, file))
-    for file in ['colors.lua', 'config.lua', 'keybindings.lua']:'core.wad', 'doomrl', 'doomrl.wad',
-      os.symlink(os.path.join(CONFIG, file), os.path.join(path, file))
+      os.symlink(os.path.join(DOOMRL, file), os.path.join(home, file))
+    for file in ['colors.lua', 'config.lua', 'keybindings.lua']:
+      os.symlink(os.path.join(CONFIG, file), os.path.join(home, file))
     for dir in ['backup', 'mortem', 'screenshot']:
-      os.mkdir(os.path.join(path, dir))
-    with open(os.path.join(home, 'passwd')) as passwd:
+      os.mkdir(os.path.join(home, dir))
+    with open(os.path.join(home, 'passwd'), 'w') as passwd:
       passwd.write(password)
-    with open(os.path.join(home, 'user.lua')) as config:
+    with open(os.path.join(home, 'user.lua'), 'w') as config:
       config.write('AlwaysName = "%s"\n' % name)
 
 
@@ -72,6 +76,7 @@ class RegisterCommand(object):
       return 'No password specified.'
 
     # Try to create user directory and die if we can't
+    print('Creating user account.')
     home = os.path.join(PLAYERS, name)
     try:
       os.mkdir(home)
@@ -81,22 +86,53 @@ class RegisterCommand(object):
     # Fill in user directory
     try:
       self.install(home, name, password)
-    except Error as e:
+    except Exception as e:
       print('Error creating user directory: %s', e)
       print('Report this to the server administrator.')
       try:
         shutil.rmtree(home)
-      except Error as e:
+      except OSError as e:
         print('Error cleaning up the half-created user directory! This usename is unavailable until the admin fixes things.')
       finally:
         return 'Unable to create user.'
 
     # Login
-    USER = name
+    return commands['login'].run(name, password)
+
+class LoginCommand(object):
+  """login <name> <pass> -- log in to an existing account.
+
+  This is necessary in order to actually play games. To create a new account,
+  use "register"."""
+
+  nargs = 2
+
+  def run(self, name, password):
+    if HOME:
+      return 'You are already logged in!'
+
+    if not name or not password:
+      return 'You must specify both a username and a password.'
+
+    # Check password
+    home = os.path.join(PLAYERS, name)
+    try:
+      with open(os.path.join(home, 'passwd')) as f:
+        passwd = f.read()
+    except IOError as e:
+      return 'Login failed.'
+
+    if passwd != password:
+      print(passwd, password)
+      return 'Login failed.'
+
+    global USER,HOME
     HOME = home
+    USER = name
 
 commands = {
   'register': RegisterCommand(),
+  'login': LoginCommand(),
 }
 
 def argsplit(string, max=2):
@@ -107,13 +143,19 @@ def argsplit(string, max=2):
 
 def main():
   while True:
-    [cmd, args] = argsplit(input('\n%s> ' % USER))
-    if cmd in commands:
-      result = commands[cmd].run(*argsplit(args, max=commands[cmd].nargs))
-      if result:
-        print('Error: %s' % result)
-    else:
-      print("Error: Unrecognized command. Try 'help'.")
+    try:
+      [cmd, args] = argsplit(input('\n%s> ' % USER))
+      if cmd in commands:
+        result = commands[cmd].run(*argsplit(args, max=commands[cmd].nargs))
+        if result:
+          print('Error: %s' % result)
+      elif not cmd:
+        pass
+      else:
+        print('Error: Unrecognized command. Try "help".')
+    except EOFError as e:
+      print('Goodbye!')
+      break
 
 if __name__ == '__main__':
   main()
