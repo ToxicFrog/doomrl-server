@@ -1,0 +1,119 @@
+#!/usr/bin/python3
+
+import os
+import readline
+import shutil
+
+# Important paths.
+ROOT = os.getenv('HOME')
+CONFIG = os.path.join(ROOT, 'config')
+DOOMRL = os.path.join(ROOT, 'doomrl')
+PLAYERS = os.path.join(ROOT, 'players')
+WWW = os.path.join(ROOT, 'www')
+USER = 'guest'
+HOME = None
+
+# DoomRL loads score.wad and player.wad on startup, holds them in memory for its
+# entire run, and writes them out on exit.
+# Score.wad is a gzipped XML file containing the scores. It starts with a CRC,
+# and if this CRC is incorrect, will attempt to restore score.wad from backup
+# or, failing that, erase it and start over. So merging score.wad is a no-go
+# unless we can reverse engineer the CRC. It looks the right size to be md5.
+
+# Terminal commands:
+# register a new account
+# log in as an existing account
+# start or resume a game
+# watch someone else's game
+# watch a replay
+# purge their doomrl install and start over (failsafe)
+
+class RegisterCommand(object):
+  """register <name> <pass> -- create a new account
+
+  Attempts to create (and log in to) a new user account. The username will be
+  used as your DoomRL username (and thus will appear on the high score list) and
+  has certain restrictions as a result: 24 character maximum, alphanumeric ASCII
+  only. The password can contain anything, including whitespace."""
+
+  nargs = 2
+
+  def name_valid(self, name):
+    return 0 < len(name) <= 24 and bytes(name, encoding='utf8').isalnum()
+
+  def install(self, path, name, password):
+    """Install a personal copy of DoomRL to the given path."""
+    # The player needs their own personal player.wad, score.wad, and backup,
+    # mortem and screenshot directories.
+    # They also need a personalized name.lua that is generated on the fly.
+    # They get symlinks to colors.lua, config.lua, core.wad, doomrl, doomrl.wad,
+    # and keybindings.lua.
+    for file in ['player.wad', 'score.wad']:
+      shutil.copy(os.path.join(DOOMRL, file), path)
+    for file in ['core.wad', 'doomrl', 'doomrl.wad']:
+      os.symlink(os.path.join(DOOMRL, file), os.path.join(path, file))
+    for file in ['colors.lua', 'config.lua', 'keybindings.lua']:'core.wad', 'doomrl', 'doomrl.wad',
+      os.symlink(os.path.join(CONFIG, file), os.path.join(path, file))
+    for dir in ['backup', 'mortem', 'screenshot']:
+      os.mkdir(os.path.join(path, dir))
+    with open(os.path.join(home, 'passwd')) as passwd:
+      passwd.write(password)
+    with open(os.path.join(home, 'user.lua')) as config:
+      config.write('AlwaysName = "%s"\n' % name)
+
+
+  def run(self, name, password):
+    # Check name validity
+    if not self.name_valid(name):
+      return 'Invalid name.'
+
+    # Check that password was specified
+    if not password:
+      return 'No password specified.'
+
+    # Try to create user directory and die if we can't
+    home = os.path.join(PLAYERS, name)
+    try:
+      os.mkdir(home)
+    except OSError as e:
+      return 'Unable to create user directory; most likely this name is already in use.'
+
+    # Fill in user directory
+    try:
+      self.install(home, name, password)
+    except Error as e:
+      print('Error creating user directory: %s', e)
+      print('Report this to the server administrator.')
+      try:
+        shutil.rmtree(home)
+      except Error as e:
+        print('Error cleaning up the half-created user directory! This usename is unavailable until the admin fixes things.')
+      finally:
+        return 'Unable to create user.'
+
+    # Login
+    USER = name
+    HOME = home
+
+commands = {
+  'register': RegisterCommand(),
+}
+
+def argsplit(string, max=2):
+  args = string.split(maxsplit=max-1)
+  while len(args) < max:
+    args.append('')
+  return args
+
+def main():
+  while True:
+    [cmd, args] = argsplit(input('\n%s> ' % USER))
+    if cmd in commands:
+      result = commands[cmd].run(*argsplit(args, max=commands[cmd].nargs))
+      if result:
+        print('Error: %s' % result)
+    else:
+      print("Error: Unrecognized command. Try 'help'.")
+
+if __name__ == '__main__':
+  main()
