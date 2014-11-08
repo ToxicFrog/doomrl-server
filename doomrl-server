@@ -4,6 +4,8 @@ import os
 import readline
 import shutil
 
+from inspect import getdoc
+
 # Important paths.
 ROOT = os.getenv('HOME')
 CONFIG = os.path.join(ROOT, 'config')
@@ -20,15 +22,20 @@ HOME = None
 # or, failing that, erase it and start over. So merging score.wad is a no-go
 # unless we can reverse engineer the CRC. It looks the right size to be md5.
 
-# Terminal commands:
-# register a new account
-# log in as an existing account
-# start or resume a game
-# watch someone else's game
-# watch a replay
-# purge their doomrl install and start over (failsafe)
+commands = {}
+class CommandRegistration(type):
+  def __new__(cls, clsname, bases, attrs):
+    global commands
+    newclass = super().__new__(cls, clsname, bases, attrs)
+    name = clsname.replace('Command', '').lower()
+    if name:
+      commands[name] = newclass()
+    return newclass
 
-class RegisterCommand(object):
+class Command(object, metaclass=CommandRegistration):
+  pass
+
+class RegisterCommand(Command):
   """register <name> <pass> -- create a new account
 
   Attempts to create (and log in to) a new user account. You can spectate and
@@ -99,7 +106,7 @@ class RegisterCommand(object):
     # Login
     return commands['login'].run(name, password)
 
-class LoginCommand(object):
+class LoginCommand(Command):
   """login <name> <pass> -- log in to an existing account.
 
   This is necessary in order to actually play games. To create a new account,
@@ -108,6 +115,7 @@ class LoginCommand(object):
   nargs = 2
 
   def run(self, name, password):
+    global USER,HOME
     if HOME:
       return 'You are already logged in!'
 
@@ -126,14 +134,27 @@ class LoginCommand(object):
       print(passwd, password)
       return 'Login failed.'
 
-    global USER,HOME
     HOME = home
     USER = name
 
-commands = {
-  'register': RegisterCommand(),
-  'login': LoginCommand(),
-}
+class HelpCommand(Command):
+  """help [command] -- built in help for the DoomRL server.
+
+  With no arguments, list all commands. With a command specified, shows detailed
+  help for that command."""
+
+  nargs = 1
+
+  def run(self, cmd):
+    if not cmd:
+      for cmd in commands:
+        print(getdoc(commands[cmd]).split('\n')[0])
+      return
+
+    if not cmd in commands:
+      print('No such command. Try "help" for a list of all commands.')
+    else:
+      print(getdoc(commands[cmd]))
 
 def argsplit(string, max=2):
   args = string.split(maxsplit=max-1)
