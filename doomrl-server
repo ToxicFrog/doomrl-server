@@ -70,7 +70,7 @@ class RegisterCommand(Command):
       os.symlink(pjoin(DoomRL.doomrl, file), pjoin(home, file))
     for file in ['colors.lua', 'config.lua', 'keybindings.lua']:
       os.symlink(pjoin(DoomRL.config, file), pjoin(home, file))
-    for dir in ['backup', 'mortem', 'screenshot']:
+    for dir in ['backup', 'mortem', 'screenshot', 'recording']:
       os.mkdir(pjoin(home, dir))
     with open(pjoin(home, 'passwd'), 'w') as passwd:
       passwd.write(password)
@@ -139,7 +139,7 @@ class LoginCommand(Command):
       return 'Login failed.'
 
     DoomRL.home = home
-    DoomRL.name = name
+    DoomRL.user = name
 
 class HelpCommand(Command):
   """help [command] -- built in help for the DoomRL server.
@@ -171,9 +171,10 @@ class PlayCommand(Command):
     if not DoomRL.home:
       return 'You must log in first.'
 
+    # Invoke DoomRL.
     subprocess.call(
-      ['ttyrec', '-e', './doomrl', '-a', recfile],
-      cwd=)
+      ['ttyrec', '-e', './doomrl', '-a', 'ttyrec'],
+      cwd=DoomRL.home)
 
 class WatchCommand(Command):
   """watch <player> -- watch an in-progress game of DoomRL.
@@ -213,13 +214,15 @@ def main():
         result = commands[cmd].run(*argsplit(args, max=commands[cmd].nargs))
         if result:
           print('Error: %s' % result)
+      elif cmd == 'quit':
+        break
       elif not cmd:
         pass
       else:
         print('Error: Unrecognized command. Try "help".')
     except EOFError as e:
-      print('Goodbye!')
       break
+  print('Goodbye!')
 
 if __name__ == '__main__':
   main()
