@@ -353,7 +353,8 @@ class ScoresCommand(Command):
   """scores [player] -- show high score list
 
   With no arguments, show the entire scoreboard. With a given player, show only
-  scores for that player.
+  scores for that player. Use the arrow keys or pageup/down to scroll, and q to
+  quit.
 
   Note that due to restrictions on how DoomRL stores the high score list, the
   in-game high scores will always only show your own."""
@@ -368,12 +369,17 @@ class ScoresCommand(Command):
     else:
       scores = DoomRL.scores(player)
 
-    scores.sort(key=lambda s: int(s['score']))
+    scores.sort(reverse=True, key=lambda s: int(s['score']))
 
     difficulties = ['', 'E', 'M', 'H', 'U', 'N!']
     classes = { 'marine': 'M', 'scout': 'S', 'technician': 'T' }
+    less = subprocess.Popen(
+      ['less'],
+      universal_newlines=True,
+      env={'LESSSECURE': '1', 'TERM': os.getenv('TERM')},
+      stdin=subprocess.PIPE)
     for score in scores:
-      print(' %2s %7s %-24s %sL:%-2s %-34s L%-2s %s' % (
+      less.stdin.write(' %2s %7s %-24s %sL:%-2s %-34s L%-2s %s\n' % (
         difficulties[int(score['difficulty'])],
         score['score'],
         score['name'],
@@ -381,8 +387,9 @@ class ScoresCommand(Command):
         score['level'],
         score['killed'],
         score['depth'],
-        score.get('challenge', '')
-        ))
+        score.get('challenge', '')))
+    less.stdin.close()
+    less.wait()
 
 class MortemCommand(Command):
   """mortem <player> <number> -- view a postmortem
