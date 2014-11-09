@@ -288,6 +288,8 @@ class ReplayCommand(Command):
   replays the given name. The replay number can be found out from the list of
   that player's replays.
 
+  You can also use "latest" to view the latest replay for that player.
+
   If you know the exact timestamp of the replay (also given in the list), you
   can use that in place of the replay number.
 
@@ -326,11 +328,13 @@ class ReplayCommand(Command):
 
     # Replay the named recording.
     replays = self.replays(player)
-    recname = '[%s] %s.ttyrec' % (id, player)
-    try:
-      recname = replays[int(id)]
-    except:
-      pass
+    if id == "latest":
+      recname = replays[-1]
+    else:
+      try:
+        recname = replays[int(id)]
+      except:
+        recname = '[%s] %s.ttyrec' % (id, player)
 
     if not exists(DoomRL.player(player, 'recording', recname)):
       return 'No such replay found.'
