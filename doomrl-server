@@ -233,9 +233,43 @@ class WatchCommand(Command):
   """watch <player> -- watch an in-progress game of DoomRL.
 
   With no arguments, lists all currently active games. With the name of a
-  player, spectates that player's game."""
+  player, spectates that player's game.
+
+  The replay has an initial 'catch-up' phase where it replays the game so far
+  at 64x normal speed. During this period the normal replay controls (see
+  "help replay") will work. At any point you can exit spectator mode with ctrl-C.
+  """
 
   nargs = 1
+
+  def run(self, player):
+    if not player:
+      # list active games
+      print('SECONDS PLAYER')
+      for player in DoomRL.all_players():
+        try:
+          os.stat(DoomRL.game(player))
+          subprocess.call(['ttytime', player], cwd=DoomRL.games)
+        except FileNotFoundError:
+          pass
+      return
+    try:
+      os.stat(DoomRL.game(player))
+      # First we 'catch up' by playing the game so far at 16x speed.
+      subprocess.call(
+        ['ttyplay', '-s', '16', player],
+        cwd=DoomRL.games)
+      # Then we peek at what remains.
+      subprocess.call(
+        ['ttyplay', '-p', player],
+        cwd=DoomRL.games)
+    except FileNotFoundError:
+      return 'No game in progress under that name.'
+    except KeyboardInterrupt:
+      pass
+    finally:
+      # ttyplay may leave the terminal messed up. This fixes it.
+      subprocess.call(['reset'])
 
 class ReplayCommand(Command):
   """replay <player> <number> -- replay a recorded game
@@ -251,7 +285,8 @@ class ReplayCommand(Command):
   Replay controls:
     f or +: go faster
     s or -: go slower
-    1: reset speed to realtime
+    1: reset speed
+    ctrl-c: exit replay
     anything else: skip to the next player input (useful for long idle periods)
   """
 
@@ -289,12 +324,17 @@ class ReplayCommand(Command):
         pass
       try:
         os.stat(DoomRL.player(player, 'recording', recname))
+        subprocess.call(
+          ['ttyplay', recname],
+          cwd=DoomRL.player(player, 'recording'))
       except FileNotFoundError:
         print(DoomRL.player(player, 'recording', recname))
         return 'No such replay found.'
-      subprocess.call(
-        ['ttyplay', recname],
-        cwd=DoomRL.player(player, 'recording'))
+      except KeyboardInterrupt:
+      # ttyplay may leave the terminal messed up. This fixes it.
+        pass
+      finally:
+        subprocess.call(['reset'])
 
 class ScoresCommand(Command):
   """scores [player] -- show high score list
