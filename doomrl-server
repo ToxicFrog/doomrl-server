@@ -456,6 +456,8 @@ Type 'help' for a list of commands.""")
         print('Error: Unrecognized command. Try "help".')
     except EOFError as e:
       break
+    except KeyboardInterrupt:
+      pass
   print('Goodbye!')
 
 if __name__ == '__main__':
