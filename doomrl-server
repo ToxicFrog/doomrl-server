@@ -242,6 +242,35 @@ class ReplayCommand(Command):
 
   nargs = 2
 
+  def run(self, player, time):
+    if not player:
+      # list all players with recordings
+      pass
+    elif not time:
+      # list all recordings for this play
+      pass
+    else:
+      # Replay the named recording.
+      recname = '[%s] %s.ttyrec' % (time, player)
+      try:
+        os.stat(pjoin(DoomRL.players, player, 'recording', recname))
+      except FileNotFoundError:
+        return 'No replay found for that player and timestamp.'
+      subprocess.call(
+        ['ttyplay', recname],
+        cwd=pjoin(DoomRL.players, player, 'recording'))
+
+class ScoresCommand(Command):
+  """scores [player] -- show high score list
+
+  With no arguments, show the entire scoreboard. With a given player, show only
+  scores for that player.
+
+  Note that due to restrictions on how DoomRL stores the high score list, the
+  in-game high scores will always only show your own."""
+
+  nargs = 1
+
 def sighup(sig, frame):
   """Signal handler for SIGHUP, which is raised when the user disconnects suddenly."""
   # If we got interrupted halfway through creating the player's profile, then
@@ -259,7 +288,7 @@ def sighup(sig, frame):
     # went sideways, so we should save it.
     try:
       when = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
-      what = '[%s] %s (disconnected).ttyrec' % (when, DoomRL.user)
+      what = '[%s] %s.ttyrec' % (when, DoomRL.user)
       os.rename(
         pjoin(DoomRL.games, DoomRL.user),
         pjoin(DoomRL.home, 'recording', what))
