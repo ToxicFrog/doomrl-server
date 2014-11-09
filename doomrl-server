@@ -3,17 +3,9 @@
 import os
 import readline
 import shutil
+import subprocess
 
-from inspect import getdoc
-
-# Important paths.
-ROOT = os.getenv('HOME')
-CONFIG = os.path.join(ROOT, 'config')
-DOOMRL = os.path.join(ROOT, 'doomrl')
-PLAYERS = os.path.join(ROOT, 'players')
-WWW = os.path.join(ROOT, 'www')
-USER = 'guest'
-HOME = None
+from os.path import join as pjoin
 
 # DoomRL loads score.wad and player.wad on startup, holds them in memory for its
 # entire run, and writes them out on exit.
@@ -21,6 +13,17 @@ HOME = None
 # and if this CRC is incorrect, will attempt to restore score.wad from backup
 # or, failing that, erase it and start over. So merging score.wad is a no-go
 # unless we can reverse engineer the CRC. It looks the right size to be md5.
+
+class DoomRL(object):
+  # Set up paths
+  root = os.getenv('DOOMRL_SERVER') or os.getenv('HOME')
+  config = pjoin(root, 'config')
+  doomrl = pjoin(root, 'doomrl')
+  players = pjoin(root, 'players')
+  www = pjoin(root, 'www')
+  # Global state
+  user = 'guest'
+  home = None
 
 commands = {}
 class CommandRegistration(type):
@@ -33,7 +36,9 @@ class CommandRegistration(type):
     return newclass
 
 class Command(object, metaclass=CommandRegistration):
-  pass
+  nargs = 0
+  def run(self, *args):
+    return 'Not implemented yet.'
 
 class RegisterCommand(Command):
   """register <name> <pass> -- create a new account
@@ -60,16 +65,16 @@ class RegisterCommand(Command):
     # They get symlinks to colors.lua, config.lua, core.wad, doomrl, doomrl.wad,
     # and keybindings.lua.
     for file in ['player.wad', 'score.wad']:
-      shutil.copy(os.path.join(DOOMRL, file), home)
+      shutil.copy(pjoin(DoomRL.doomrl, file), home)
     for file in ['core.wad', 'doomrl', 'doomrl.wad']:
-      os.symlink(os.path.join(DOOMRL, file), os.path.join(home, file))
+      os.symlink(pjoin(DoomRL.doomrl, file), pjoin(home, file))
     for file in ['colors.lua', 'config.lua', 'keybindings.lua']:
-      os.symlink(os.path.join(CONFIG, file), os.path.join(home, file))
+      os.symlink(pjoin(DoomRL.config, file), pjoin(home, file))
     for dir in ['backup', 'mortem', 'screenshot']:
-      os.mkdir(os.path.join(home, dir))
-    with open(os.path.join(home, 'passwd'), 'w') as passwd:
+      os.mkdir(pjoin(home, dir))
+    with open(pjoin(home, 'passwd'), 'w') as passwd:
       passwd.write(password)
-    with open(os.path.join(home, 'user.lua'), 'w') as config:
+    with open(pjoin(home, 'user.lua'), 'w') as config:
       config.write('AlwaysName = "%s"\n' % name)
 
 
@@ -84,7 +89,7 @@ class RegisterCommand(Command):
 
     # Try to create user directory and die if we can't
     print('Creating user account.')
-    home = os.path.join(PLAYERS, name)
+    home = pjoin(DoomRL.players, name)
     try:
       os.mkdir(home)
     except OSError as e:
@@ -115,15 +120,14 @@ class LoginCommand(Command):
   nargs = 2
 
   def run(self, name, password):
-    global USER,HOME
-    if HOME:
+    if DoomRL.home:
       return 'You are already logged in!'
 
     if not name or not password:
       return 'You must specify both a username and a password.'
 
     # Check password
-    home = os.path.join(PLAYERS, name)
+    home = os.path.join(DoomRL.players, name)
     try:
       with open(os.path.join(home, 'passwd')) as f:
         passwd = f.read()
@@ -134,8 +138,8 @@ class LoginCommand(Command):
       print(passwd, password)
       return 'Login failed.'
 
-    HOME = home
-    USER = name
+    DoomRL.home = home
+    DoomRL.name = name
 
 class HelpCommand(Command):
   """help [command] -- built in help for the DoomRL server.
@@ -146,6 +150,8 @@ class HelpCommand(Command):
   nargs = 1
 
   def run(self, cmd):
+    from inspect import getdoc
+
     if not cmd:
       for cmd in commands:
         print(getdoc(commands[cmd]).split('\n')[0])
@@ -156,6 +162,43 @@ class HelpCommand(Command):
     else:
       print(getdoc(commands[cmd]))
 
+class PlayCommand(Command):
+  """play -- play a game of DoomRL.
+
+  The game will automatically be recorded and made available for spectating."""
+
+  def run(self):
+    if not DoomRL.home:
+      return 'You must log in first.'
+
+    subprocess.call(
+      ['ttyrec', '-e', './doomrl', '-a', recfile],
+      cwd=)
+
+class WatchCommand(Command):
+  """watch <player> -- watch an in-progress game of DoomRL.
+
+  With no arguments, lists all currently active games. With the name of a
+  player, spectates that player's game."""
+
+  nargs = 1
+
+class ReplayCommand(Command):
+  """replay <player> <time> -- replay a recorded game
+
+  With no arguments, lists all players with recorded games. With a player name,
+  lists the recorded games for that player. With a name and a date/time stamp,
+  replays that game.
+
+  Replay controls:
+    f or +: go faster
+    s or -: go slower
+    1: reset speed to realtime
+    anything else: skip to the next player input (useful for long idle periods)
+  """
+
+  nargs = 2
+
 def argsplit(string, max=2):
   args = string.split(maxsplit=max-1)
   while len(args) < max:
@@ -165,7 +208,7 @@ def argsplit(string, max=2):
 def main():
   while True:
     try:
-      [cmd, args] = argsplit(input('\n%s> ' % USER))
+      [cmd, args] = argsplit(input('\n%s> ' % DoomRL.user))
       if cmd in commands:
         result = commands[cmd].run(*argsplit(args, max=commands[cmd].nargs))
         if result:

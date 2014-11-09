@@ -157,7 +157,7 @@ ScoreBackups     = 7
 
 -- If set to false DoomRL will quit on death and quitting. Normally it will go back
 -- to the main menu.
-MenuReturn       = true
+MenuReturn       = false
 
 -- Defines the maximum repeat for the run command. Setting it to larger than 80
 -- basically means no limit.
