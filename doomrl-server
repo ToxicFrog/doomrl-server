@@ -27,6 +27,17 @@ class DoomRL(object):
   user = 'guest'
   home = None
 
+  @classmethod
+  def player(cls, *args):
+    return pjoin(cls.players, *args)
+  @classmethod
+  def game(cls, *args):
+    return pjoin(cls.games, *args)
+  @classmethod
+  def all_players(cls):
+    return sorted([p for p in os.listdir(cls.players) if not p.startswith('.')])
+
+
 commands = {}
 class CommandRegistration(type):
   def __new__(cls, clsname, bases, attrs):
@@ -92,7 +103,7 @@ class RegisterCommand(Command):
     # Try to create user directory and die if we can't
     print('Creating user account.')
     DoomRL.user = name
-    home = pjoin(DoomRL.players, name)
+    home = DoomRL.player(name)
     try:
       os.mkdir(home)
     except OSError as e:
@@ -182,7 +193,7 @@ class PlayCommand(Command):
       return 'You must log in first.'
 
     # Check that they aren't already playing *right now*.
-    recfile = pjoin(DoomRL.games, DoomRL.user)
+    recfile = DoomRL.game(DoomRL.user)
     try:
       os.stat(recfile)
       if not force == 'force':
@@ -215,7 +226,7 @@ class PlayCommand(Command):
       when = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
       what = '[%s] %s.ttyrec' % (when, DoomRL.user)
       os.rename(
-        pjoin(DoomRL.games, DoomRL.user),
+        DoomRL.game(DoomRL.user),
         pjoin(DoomRL.home, 'recording', what))
 
 class WatchCommand(Command):
@@ -227,11 +238,15 @@ class WatchCommand(Command):
   nargs = 1
 
 class ReplayCommand(Command):
-  """replay <player> <time> -- replay a recorded game
+  """replay <player> <number> -- replay a recorded game
 
   With no arguments, lists all players with recorded games. With a player name,
-  lists the recorded games for that player. With a name and a date/time stamp,
-  replays that game.
+  lists the recorded games for that player. With a name and a replay number,
+  replays the given name. The replay number can be found out from the list of
+  that player's replays.
+
+  If you know the exact timestamp of the replay (also given in the list), you
+  can use that in place of the replay number.
 
   Replay controls:
     f or +: go faster
@@ -242,23 +257,44 @@ class ReplayCommand(Command):
 
   nargs = 2
 
-  def run(self, player, time):
+  def replays(self, player):
+    return sorted(os.listdir(DoomRL.player(player, 'recording')))
+
+  def list_players(self):
+    """List all players with recordings, and how many."""
+    print(' NUM  PLAYER')
+    for player in DoomRL.all_players():
+      replays = len(self.replays(player))
+      if replays > 0:
+        print('%4d  %s' % (replays, player))
+
+  def list_replays(self, player):
+    """List all recordings for this player."""
+    print('  ID  TIME')
+    for (index, replay) in enumerate(self.replays(player)):
+      print('%4d  %s' % (index, replay[1:20]))
+
+  def run(self, player, id):
     if not player:
-      # list all players with recordings
-      pass
-    elif not time:
-      # list all recordings for this play
-      pass
+      return self.list_players()
+    elif not id:
+      return self.list_replays(player)
     else:
       # Replay the named recording.
-      recname = '[%s] %s.ttyrec' % (time, player)
+      replays = self.replays(player)
+      recname = '[%s] %s.ttyrec' % (id, player)
       try:
-        os.stat(pjoin(DoomRL.players, player, 'recording', recname))
+        recname = replays[int(id)]
+      except:
+        pass
+      try:
+        os.stat(DoomRL.player(player, 'recording', recname))
       except FileNotFoundError:
-        return 'No replay found for that player and timestamp.'
+        print(DoomRL.player(player, 'recording', recname))
+        return 'No such replay found.'
       subprocess.call(
         ['ttyplay', recname],
-        cwd=pjoin(DoomRL.players, player, 'recording'))
+        cwd=DoomRL.player(player, 'recording'))
 
 class ScoresCommand(Command):
   """scores [player] -- show high score list
@@ -279,7 +315,7 @@ def sighup(sig, frame):
   # safe). In that case we should remove the half-constructed player profile
   # so that the name can be re-used.
   if DoomRL.user != 'guest' and not DoomRL.home:
-    shutil.rmtree(pjoin(DoomRL.players, DoomRL.user), ignore_errors=True)
+    shutil.rmtree(DoomRL.player(DoomRL.user), ignore_errors=True)
     return
 
   if DoomRL.home and DoomRL.user:
@@ -290,7 +326,7 @@ def sighup(sig, frame):
       when = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
       what = '[%s] %s.ttyrec' % (when, DoomRL.user)
       os.rename(
-        pjoin(DoomRL.games, DoomRL.user),
+        DoomRL.game(DoomRL.user),
         pjoin(DoomRL.home, 'recording', what))
     except FileNotFoundError:
       pass
