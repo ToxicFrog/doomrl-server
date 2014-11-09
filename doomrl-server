@@ -347,6 +347,39 @@ class ScoresCommand(Command):
 
   nargs = 1
 
+  def scores(self, player):
+    import gzip
+    import xml.etree.ElementTree as etree
+    scores = []
+    with gzip.open(DoomRL.player(player, 'score.wad')) as fd:
+      xml = etree.parse(fd)
+    return [entry.attrib for entry in xml.getroot().findall('entry')]
+
+  def run(self, player):
+    if not player:
+      scores = []
+      for player in DoomRL.all_players():
+        scores += self.scores(player)
+    else:
+      scores = self.scores(player)
+
+    scores.sort(key=lambda s: int(s['score']))
+
+    difficulties = ['', 'E', 'M', 'H', 'U', 'N!']
+    classes = { 'marine': 'M', 'scout': 'S', 'technician': 'T' }
+    for score in scores:
+      print(' %2s %-7s %-24s %sL:%-2s %-34s L%-2s %s' % (
+        difficulties[int(score['difficulty'])],
+        score['score'],
+        score['name'],
+        classes[score['klass']],
+        score['level'],
+        score['killed'],
+        score['depth'],
+        score.get('challenge', '')
+        ))
+
+
 def sighup(sig, frame):
   """Signal handler for SIGHUP, which is raised when the user disconnects suddenly."""
   # If we got interrupted halfway through creating the player's profile, then
