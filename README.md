@@ -23,8 +23,10 @@ This holds information about games in progress. For each game there's a ttyrec f
 ## License
 
 Copyright © 2014 Ben "ToxicFrog" Kelly
-
 Distributed under the MIT License; see the file COPYING for details.
+
+ASCII DOOM logo copyright © 1994 F.P. de Vries.
+http://www.gamers.org/~fpv/doomlogo.html
 
 ## Disclaimer
 
