@@ -183,7 +183,7 @@ IntuitionChar    = "*"
 -- Mortem and screenshot timestamp format
 -- Format : http://www.freepascal.org/docs-html/rtl/sysutils/formatchars.html
 -- note that / and : will be converted to "-" due to filesystem issues
-TimeStamp        = "yyyy-mm-dd hh.nn.ss"
+TimeStamp        = "yyyy-mm-dd hh-nn-ss"
 
 -- Controls whether the game will attempt to save the game on crash, set to false
 -- to turn this off

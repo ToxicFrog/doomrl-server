@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import datetime
 import os
 import readline
 import shutil
@@ -19,6 +20,7 @@ class DoomRL(object):
   root = os.getenv('DOOMRL_SERVER') or os.getenv('HOME')
   config = pjoin(root, 'config')
   doomrl = pjoin(root, 'doomrl')
+  games = pjoin(root, 'games')
   players = pjoin(root, 'players')
   www = pjoin(root, 'www')
   # Global state
@@ -89,6 +91,7 @@ class RegisterCommand(Command):
 
     # Try to create user directory and die if we can't
     print('Creating user account.')
+    DoomRL.user = name
     home = pjoin(DoomRL.players, name)
     try:
       os.mkdir(home)
@@ -163,18 +166,57 @@ class HelpCommand(Command):
       print(getdoc(commands[cmd]))
 
 class PlayCommand(Command):
-  """play -- play a game of DoomRL.
+  """play [force] -- play a game of DoomRL.
 
-  The game will automatically be recorded and made available for spectating."""
+  The game will automatically be recorded and made available for spectating.
 
-  def run(self):
+  If run as 'play force', will play even if it looks like you already have a game
+  in progress on another connection. Note that this will result in the recording
+  for that other game being lost, and potentially in DoomRL high score/player
+  rank information being lost as well."""
+
+  nargs = 1
+
+  def run(self, force):
     if not DoomRL.home:
       return 'You must log in first.'
 
+    # Check that they aren't already playing *right now*.
+    recfile = pjoin(DoomRL.games, DoomRL.user)
+    try:
+      os.stat(recfile)
+      if not force == 'force':
+        return 'You have a game already in progress! Disconnect that session first.'
+      print('You have a game already in progress! Deleting existing recording and continuing.')
+      os.remove(recfile)
+    except FileNotFoundError:
+      pass
+
+    # If the player has a game in progress, restore their ttyrec file.
+    try:
+      os.rename(recfile + ".save", recfile)
+      print('Recording of current game restored.')
+    except FileNotFoundError:
+      pass
+
     # Invoke DoomRL.
     subprocess.call(
-      ['ttyrec', '-e', './doomrl', '-a', 'ttyrec'],
+      ['ttyrec', '-e', './doomrl', '-a', recfile],
       cwd=DoomRL.home)
+
+    # If the game is still in progress, save the ttyrec file.
+    try:
+      os.stat(pjoin(DoomRL.home, 'save'))
+      os.rename(recfile, recfile + '.save')
+    except FileNotFoundError:
+      # Otherwise, archive it under an appropriate name.
+      # FIXME: this should check the mortem directory and make sure that the
+      # timestamps match up.
+      when = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
+      what = '[%s] %s.ttyrec' % (when, DoomRL.user)
+      os.rename(
+        pjoin(DoomRL.games, DoomRL.user),
+        pjoin(DoomRL.home, 'recording', what))
 
 class WatchCommand(Command):
   """watch <player> -- watch an in-progress game of DoomRL.
@@ -200,6 +242,31 @@ class ReplayCommand(Command):
 
   nargs = 2
 
+def sighup(sig, frame):
+  """Signal handler for SIGHUP, which is raised when the user disconnects suddenly."""
+  # If we got interrupted halfway through creating the player's profile, then
+  # DoomRL.user will be set and DoomRL.home won't be (a normal login sets them
+  # in the opposite order, so if we get interrupted halfway through login it's
+  # safe). In that case we should remove the half-constructed player profile
+  # so that the name can be re-used.
+  if DoomRL.user != 'guest' and not DoomRL.home:
+    shutil.rmtree(pjoin(DoomRL.players, DoomRL.user), ignore_errors=True)
+    return
+
+  if DoomRL.home and DoomRL.user:
+    # If we got interrupted while the player was actually in DoomRL, there's a
+    # ttyrec file. It's possible they did something super cool before everything
+    # went sideways, so we should save it.
+    try:
+      when = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
+      what = '[%s] %s (disconnected).ttyrec' % (when, DoomRL.user)
+      os.rename(
+        pjoin(DoomRL.games, DoomRL.user),
+        pjoin(DoomRL.home, 'recording', what))
+    except FileNotFoundError:
+      pass
+
+
 def argsplit(string, max=2):
   args = string.split(maxsplit=max-1)
   while len(args) < max:
@@ -207,6 +274,9 @@ def argsplit(string, max=2):
   return args
 
 def main():
+  from signal import signal,SIGHUP
+  signal(SIGHUP, sighup)
+
   while True:
     try:
       [cmd, args] = argsplit(input('\n%s> ' % DoomRL.user))
