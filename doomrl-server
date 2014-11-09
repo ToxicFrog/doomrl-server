@@ -7,6 +7,7 @@ import shutil
 import subprocess
 
 from os.path import join as pjoin
+from os.path import exists
 
 # DoomRL loads score.wad and player.wad on startup, holds them in memory for its
 # entire run, and writes them out on exit.
@@ -30,12 +31,24 @@ class DoomRL(object):
   @classmethod
   def player(cls, *args):
     return pjoin(cls.players, *args)
+
   @classmethod
   def game(cls, *args):
     return pjoin(cls.games, *args)
+
   @classmethod
   def all_players(cls):
     return sorted([p for p in os.listdir(cls.players) if not p.startswith('.')])
+
+  @classmethod
+  def scores(cls, player):
+    import gzip
+    import xml.etree.ElementTree as etree
+    scores = []
+    with gzip.open(cls.player(player, 'score.wad')) as fd:
+      xml = etree.parse(fd)
+    return [entry.attrib for entry in xml.getroot().findall('entry')]
+
 
 
 commands = {}
@@ -194,21 +207,16 @@ class PlayCommand(Command):
 
     # Check that they aren't already playing *right now*.
     recfile = DoomRL.game(DoomRL.user)
-    try:
-      os.stat(recfile)
+    if exists(recfile):
       if not force == 'force':
         return 'You have a game already in progress! Disconnect that session first.'
       print('You have a game already in progress! Deleting existing recording and continuing.')
       os.remove(recfile)
-    except FileNotFoundError:
-      pass
 
     # If the player has a game in progress, restore their ttyrec file.
-    try:
-      os.rename(recfile + ".save", recfile)
+    if exists(recfile + '.save'):
+      os.rename(recfile + '.save', recfile)
       print('Recording of current game restored.')
-    except FileNotFoundError:
-      pass
 
     # Invoke DoomRL.
     subprocess.call(
@@ -216,10 +224,9 @@ class PlayCommand(Command):
       cwd=DoomRL.home)
 
     # If the game is still in progress, save the ttyrec file.
-    try:
-      os.stat(pjoin(DoomRL.home, 'save'))
+    if exists(recfile + '.save'):
       os.rename(recfile, recfile + '.save')
-    except FileNotFoundError:
+    else:
       # Otherwise, archive it under an appropriate name.
       # FIXME: this should check the mortem directory and make sure that the
       # timestamps match up.
@@ -247,14 +254,14 @@ class WatchCommand(Command):
       # list active games
       print('SECONDS PLAYER')
       for player in DoomRL.all_players():
-        try:
-          os.stat(DoomRL.game(player))
+        if exists(DoomRL.game(player)):
           subprocess.call(['ttytime', player], cwd=DoomRL.games)
-        except FileNotFoundError:
-          pass
       return
+
+    if not exists(DoomRL.game(player)):
+      return 'No game in progress under that name.'
+
     try:
-      os.stat(DoomRL.game(player))
       # First we 'catch up' by playing the game so far at 16x speed.
       subprocess.call(
         ['ttyplay', '-s', '16', player],
@@ -263,8 +270,6 @@ class WatchCommand(Command):
       subprocess.call(
         ['ttyplay', '-p', player],
         cwd=DoomRL.games)
-    except FileNotFoundError:
-      return 'No game in progress under that name.'
     except KeyboardInterrupt:
       pass
     finally:
@@ -314,27 +319,27 @@ class ReplayCommand(Command):
       return self.list_players()
     elif not id:
       return self.list_replays(player)
-    else:
-      # Replay the named recording.
-      replays = self.replays(player)
-      recname = '[%s] %s.ttyrec' % (id, player)
-      try:
-        recname = replays[int(id)]
-      except:
-        pass
-      try:
-        os.stat(DoomRL.player(player, 'recording', recname))
-        subprocess.call(
-          ['ttyplay', recname],
-          cwd=DoomRL.player(player, 'recording'))
-      except FileNotFoundError:
-        print(DoomRL.player(player, 'recording', recname))
-        return 'No such replay found.'
-      except KeyboardInterrupt:
+
+    # Replay the named recording.
+    replays = self.replays(player)
+    recname = '[%s] %s.ttyrec' % (id, player)
+    try:
+      recname = replays[int(id)]
+    except:
+      pass
+
+    if not exists(DoomRL.player(player, 'recording', recname)):
+      return 'No such replay found.'
+
+    try:
+      subprocess.call(
+        ['ttyplay', recname],
+        cwd=DoomRL.player(player, 'recording'))
+    except KeyboardInterrupt:
+      pass
+    finally:
       # ttyplay may leave the terminal messed up. This fixes it.
-        pass
-      finally:
-        subprocess.call(['reset'])
+      subprocess.call(['reset'])
 
 class ScoresCommand(Command):
   """scores [player] -- show high score list
@@ -347,28 +352,20 @@ class ScoresCommand(Command):
 
   nargs = 1
 
-  def scores(self, player):
-    import gzip
-    import xml.etree.ElementTree as etree
-    scores = []
-    with gzip.open(DoomRL.player(player, 'score.wad')) as fd:
-      xml = etree.parse(fd)
-    return [entry.attrib for entry in xml.getroot().findall('entry')]
-
   def run(self, player):
     if not player:
       scores = []
       for player in DoomRL.all_players():
-        scores += self.scores(player)
+        scores += DoomRL.scores(player)
     else:
-      scores = self.scores(player)
+      scores = DoomRL.scores(player)
 
     scores.sort(key=lambda s: int(s['score']))
 
     difficulties = ['', 'E', 'M', 'H', 'U', 'N!']
     classes = { 'marine': 'M', 'scout': 'S', 'technician': 'T' }
     for score in scores:
-      print(' %2s %-7s %-24s %sL:%-2s %-34s L%-2s %s' % (
+      print(' %2s %7s %-24s %sL:%-2s %-34s L%-2s %s' % (
         difficulties[int(score['difficulty'])],
         score['score'],
         score['name'],
@@ -433,11 +430,11 @@ def main():
 ||   .=='    _-'          `-__\._-'         `-_./__-'         `' |. /|  |   ||
 ||.=='    _-'                                                     `' |  /==.||
 =='    _-'               DoomRL by Kornel Kisielewicz                 \/   `==
-\   _-'               DoomRL Server Frontend by Ben Kelly              `-_   /
+\   _-'                   DoomRL Server by Ben Kelly                   `-_   /
  `''                                                                      ``'
 
 
-Welcome to this DoomRL Server.
+Welcome to this DoomRL server.
 Type 'help' for a list of commands.""")
 
   while True:
