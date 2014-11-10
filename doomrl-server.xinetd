@@ -1,0 +1,11 @@
+service doomrl-server
+{
+        socket_type     = stream
+        protocol        = tcp
+        wait            = no
+        user            = doomrl
+        group           = nogroup
+        server          = /var/lib/doomrl/doomrl-server
+        port            = 3666
+        type            = UNLISTED
+}
