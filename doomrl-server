@@ -18,7 +18,7 @@ from os.path import exists
 
 class DoomRL(object):
   # Set up paths
-  root = os.getenv('DOOMRL_SERVER') or os.getenv('HOME')
+  root = os.getenv('DOOMRL_SERVER') or os.path.dirname(os.path.realpath(__file__))
   config = pjoin(root, 'config')
   doomrl = pjoin(root, 'doomrl')
   games = pjoin(root, 'games')
