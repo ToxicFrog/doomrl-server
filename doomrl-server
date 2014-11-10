@@ -41,6 +41,11 @@ class DoomRL(object):
     return sorted([p for p in os.listdir(cls.players) if not p.startswith('.')])
 
   @classmethod
+  def mortems(cls, player):
+    return sorted(os.listdir(cls.player(player, 'mortem')))
+
+
+  @classmethod
   def scores(cls, player):
     import gzip
     import xml.etree.ElementTree as etree
@@ -218,19 +223,28 @@ class PlayCommand(Command):
       os.rename(recfile + '.save', recfile)
       print('Recording of current game restored.')
 
+    # Get their pre-game high scores so we can check for new ones afterwards.
+    scores_before = DoomRL.scores(DoomRL.user)
+    mortem_before = DoomRL.mortems(DoomRL.user)[-1]
+
     # Invoke DoomRL.
     subprocess.call(
       ['ttyrec', '-e', './doomrl', '-a', recfile],
       cwd=DoomRL.home)
 
     # If the game is still in progress, save the ttyrec file.
-    if exists(recfile + '.save'):
+    if exists(DoomRL.player(DoomRL.user, 'save')):
       os.rename(recfile, recfile + '.save')
     else:
-      # Otherwise, archive it under an appropriate name.
-      # FIXME: this should check the mortem directory and make sure that the
-      # timestamps match up.
+      # Otherwise, there *should* be a new high score entry and a new mortem.
       when = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
+      mortem = DoomRL.mortems(DoomRL.user)[-1]
+      if mortem != mortem_before:
+        when = mortem[1:20]
+
+      # We also save the ttyrec file.
+      # If we successfully found a postmortem, we use the date from that
+      # so that they match.
       what = '[%s] %s.ttyrec' % (when, DoomRL.user)
       os.rename(
         DoomRL.game(DoomRL.user),
@@ -405,21 +419,18 @@ class MortemCommand(Command):
 
   nargs = 2
 
-  def mortems(self, player):
-    return sorted(os.listdir(DoomRL.player(player, 'mortem')))
-
   def list_players(self):
     """List all players with mortems, and how many."""
     print(' NUM  PLAYER')
     for player in DoomRL.all_players():
-      mortems = len(self.mortems(player))
+      mortems = len(DoomRL.mortems(player))
       if mortems > 0:
         print('%4d  %s' % (mortems, player))
 
   def list_mortems(self, player):
     """List all mortems for this player."""
     print('  ID  TIME')
-    for (index, mortem) in enumerate(self.mortems(player)):
+    for (index, mortem) in enumerate(DoomRL.mortems(player)):
       print('%4d  %s' % (index, mortem[1:20]))
 
   def run(self, player, id):
@@ -428,7 +439,7 @@ class MortemCommand(Command):
     elif not id:
       return self.list_mortems(player)
 
-    mortems = self.mortems(player)
+    mortems = DoomRL.mortems(player)
     if id == "latest":
       mortem = mortems[-1]
     else:
