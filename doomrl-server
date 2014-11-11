@@ -215,14 +215,16 @@ class LoginCommand(Command):
     try:
       with open(os.path.join(home, 'passwd')) as f:
         passwd = f.read()
+      if passwd == password:
+        DoomRL.home = home
+        DoomRL.user = name
+        return
     except IOError as e:
-      return 'Login failed.'
+      pass
 
-    if passwd != password:
-      return 'Login failed.'
-
-    DoomRL.home = home
-    DoomRL.user = name
+    DoomRL.home = None
+    DoomRL.user = "guest"
+    return 'Login failed.'
 
 class HelpCommand(Command):
   """help [command] -- built in help for the DoomRL server.
