@@ -11,9 +11,10 @@ Before you can run it, DoomRL-server has a number of requirements:
 - `ttyrec`, `ttytime`, and `ttyplay`
 - `reset`
 - `less`
+- `nano`
 - and DoomRL itself.
 
-`stty` and `less` are commonly installed by default. `reset` is likely to be as well, and if not is generally part of curses (the `ncurses-utils` package on SUSE, for example). `ttyrec` may need to be specifically installed.
+`stty`, `nano` and `less` are commonly installed by default. `reset` is likely to be as well, and if not is generally part of curses (the `ncurses-utils` package on SUSE, for example). `ttyrec` may need to be specifically installed.
 
 DoomRL should be unpacked into doomrl-server's `doomrl/` directory (so that `doomrl/doomrl` is the doomrl binary itself). The sound files are not used, so the "low-quality" version of DoomRL is sufficient.
 
@@ -29,7 +30,7 @@ You can then install doomrl-server to that user's home directory, unpack a fresh
     # tar xzf doomrl-linux-x64-0997-lq.tar.gz --strip-components=1 -C /var/lib/doomrl/doomrl/
     # chown -R doomrl:nogroup /var/lib/doomrl
 
-At this point, anyone logging as "doomrl" (for example, over telnet) will end up running the doomrl-server shell. If you would rather not permit this, you can also run it as an inetd service; a sample xinetd configuration file is provided as `doomrl-server.xinetd`.
+At this point, anyone logging as "doomrl" (for example, over telnet) will end up running the doomrl-server shell. If you would rather not permit this, you can also run it as an inetd service; a sample xinetd configuration file is provided as `doomrl-server.xinetd`. Note that the xinetd configuration uses telnetd to launch doomrl-server, as it handles setting up the terminal correctly; without this doomrl is unlikely to work.
 
 ## Configuration
 
