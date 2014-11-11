@@ -49,10 +49,12 @@ class DoomRL(object):
   def scores(cls, player):
     import gzip
     import xml.etree.ElementTree as etree
-    scores = []
-    with gzip.open(cls.player(player, 'score.wad')) as fd:
-      xml = etree.parse(fd)
-    return [entry.attrib for entry in xml.getroot().findall('entry')]
+    try:
+      with gzip.open(cls.player(player, 'score.wad')) as fd:
+        xml = etree.parse(fd)
+      return [entry.attrib for entry in xml.getroot().findall('entry')]
+    except FileNotFoundError:
+      return []
 
 
 
@@ -116,25 +118,27 @@ class RegisterCommand(Command):
       return 'No password specified.'
 
     # Try to create user directory and die if we can't
-    print('Creating user account.')
     DoomRL.user = name
     home = DoomRL.player(name)
     try:
       os.mkdir(home)
     except OSError as e:
-      return 'Unable to create user directory; most likely this name is already in use.'
+      return 'That name is unavailable.'
 
     # Fill in user directory
+    print('Creating user account.')
     try:
       self.install(home, name, password)
     except Exception as e:
-      print('Error creating user directory: %s', e)
+      print('Error creating user directory:', e)
       print('Report this to the server administrator.')
       try:
         shutil.rmtree(home)
       except OSError as e:
-        print('Error cleaning up the half-created user directory! This usename is unavailable until the admin fixes things.')
+        print('Error cleaning up the half-created user directory! This username is unavailable until the admin fixes things.')
       finally:
+        DoomRL.user = "guest"
+        DoomRL.home = None
         return 'Unable to create user.'
 
     # Login
@@ -164,7 +168,6 @@ class LoginCommand(Command):
       return 'Login failed.'
 
     if passwd != password:
-      print(passwd, password)
       return 'Login failed.'
 
     DoomRL.home = home
@@ -222,7 +225,10 @@ class PlayCommand(Command):
 
     # Get their pre-game high scores so we can check for new ones afterwards.
     scores_before = DoomRL.scores(DoomRL.user)
-    mortem_before = DoomRL.mortems(DoomRL.user)[-1]
+    try:
+      mortem_before = DoomRL.mortems(DoomRL.user)[-1]
+    except IndexError:
+      mortem_before = None
 
     # Invoke DoomRL.
     subprocess.call(
@@ -234,18 +240,24 @@ class PlayCommand(Command):
       os.rename(recfile, recfile + '.save')
     else:
       # Otherwise, there *should* be a new high score entry and a new mortem.
-      when = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
-      mortem = DoomRL.mortems(DoomRL.user)[-1]
-      if mortem != mortem_before:
-        when = mortem[1:20]
+      # Unless they simply didn't start a game in the first place.
+      try:
+        mortem = DoomRL.mortems(DoomRL.user)[-1]
+      except IndexError:
+        mortem = None
 
-      # We also save the ttyrec file.
-      # If we successfully found a postmortem, we use the date from that
-      # so that they match.
-      what = '[%s] %s.ttyrec' % (when, DoomRL.user)
+      if mortem == mortem_before:
+        # No new postmortem created and no save file means no game played.
+        os.remove(DoomRL.game(DoomRL.user))
+        return
+
+      when = mortem[1:20]
+
+      # We also save the ttyrec file, using the date from the postmortem.
+      ttyrec = '[%s] %s.ttyrec' % (when, DoomRL.user)
       os.rename(
         DoomRL.game(DoomRL.user),
-        pjoin(DoomRL.home, 'recording', what))
+        pjoin(DoomRL.home, 'recording', ttyrec))
 
 class WatchCommand(Command):
   """watch <player> -- watch an in-progress game of DoomRL.
