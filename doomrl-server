@@ -182,6 +182,10 @@ class ConfigCommand(Command):
         config.write('AlwaysName = "%s"\n' % DoomRL.user)
       return
 
+    if not file:
+      print('Try "config <controls|colours|user>" or "help config".')
+      return
+
     if file not in files:
       return 'Unknown file -- see "help config".'
 
