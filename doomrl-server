@@ -7,7 +7,7 @@ import shutil
 import subprocess
 
 from os.path import join as pjoin
-from os.path import exists
+from os.path import exists,isdir
 
 # DoomRL loads score.wad and player.wad on startup, holds them in memory for its
 # entire run, and writes them out on exit.
@@ -38,7 +38,9 @@ class DoomRL(object):
 
   @classmethod
   def all_players(cls):
-    return sorted([p for p in os.listdir(cls.players) if not p.startswith('.')])
+    return sorted([
+      p for p in os.listdir(cls.players)
+      if isdir(cls.player(p)) and not p.startswith('.')])
 
   @classmethod
   def mortems(cls, player):
