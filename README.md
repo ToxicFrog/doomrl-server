@@ -35,9 +35,7 @@ At this point, anyone logging as "doomrl" (for example, over telnet) will end up
 
 There's not much to configure. It assumes that the directory containing the doomrl-server script is the root of the doomrl-server install; if this is incorrect, set the environment variable `DOOMRL_SERVER` appropriately.
 
-Apart from that, the only thing to do is edit the DoomRL configuration files in `config/`; these override the default configs that come with DoomRL. (There is not, at present, any support for per-user config file editing.) The configuration files that come with doomrl-server are meant to provide sane defaults.
-
-Note the `dofile "user.lua"` at the end of `config.lua`; this is used by DoomRL-server to load a user-specific configuration file setting the username and should not be removed.
+Apart from that, the only thing to do is edit the DoomRL configuration files in `config/`; these override the default configs that come with DoomRL, which will be copied into each player's user directory. The default values should be fine, but you may want to look them over (for example, to enable a custom mod server). The `controls.lua`, `colours.lua`, and `user.lua` files are editable by the user via the `config` command; the `config.lua` file is appended to by doomrl-server at user registration time but otherwise static.
 
 ## Directories
 
@@ -58,8 +56,6 @@ Each one of these is a player-specific DoomRL directory. Most of the contents ar
 This holds information about games in progress. For each game there's a ttyrec file named for the player. If the player has a game in progress but is not currently playing, the file has a `.save` suffix.
 
 ## Future Work
-
-User editing of configuration files using `nano -R`. This will require a bit more thought about how to arrange config files.
 
 Generation of a static web interface for high score lists and mortem/ttyrec files in `www/`.
 

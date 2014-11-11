@@ -146,6 +146,55 @@ class RegisterCommand(Command):
     # Login
     return commands['login'].run(name, password)
 
+class ConfigCommand(Command):
+  """config <file> [reset] -- edit or reset configuration files
+
+  As "config <file>", lets you edit one of your DoomRL configuration files.
+  As "config <file> reset", lets you reset a file to defaults.
+  As "config all reset", resets all files to defaults.
+
+  Available files are:
+
+    controls -- keyboard controls
+    colours  -- game display colours
+    user     -- user settings and general configuration
+
+  Note that DoomRL has options not listed in any of these files; these options
+  are overriden by the server and adding them yourself will have no effect.
+  """
+
+  nargs = 2
+
+  def run(self, file, reset):
+    if not DoomRL.home:
+      return 'You must be logged in.'
+
+    if reset and reset != 'reset':
+      return 'Invalid second argument. See "help config".'
+
+    files = frozenset(['controls', 'colours', 'user'])
+
+    if reset and file == "all":
+      print("Restoring default configuration files.")
+      for file in os.listdir(DoomRL.config):
+        shutil.copy(pjoin(DoomRL.config, file), pjoin(DoomRL.home, file))
+      with open(pjoin(DoomRL.home, 'config.lua'), 'a') as config:
+        config.write('AlwaysName = "%s"\n' % DoomRL.user)
+      return
+
+    if file not in files:
+      return 'Unknown file -- see "help config".'
+
+    if reset:
+      print('Restoring %s.lua to defaults.')
+      shutil.copy(pjoin(DoomRL.config, file + '.lua'), DoomRL.home)
+      return
+
+    # Use Nano in secure mode to edit the file.
+    subprocess.call(
+      ['nano', '-R', pjoin(DoomRL.home, file + '.lua')])
+
+
 class LoginCommand(Command):
   """login <name> <pass> -- log in to an existing account.
 

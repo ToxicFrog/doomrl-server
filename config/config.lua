@@ -1,9 +1,10 @@
 
-dofile "colors.lua"
+-- COMMAND_* constants
 dofile "commands.lua"
-dofile "keybindings.lua"
 
 -- user-defined settings
+dofile "colours.lua"
+dofile "controls.lua"
 dofile "user.lua"
 
 ----------------------------------------------------------------------
