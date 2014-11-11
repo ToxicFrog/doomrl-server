@@ -5,9 +5,11 @@ import os
 import readline
 import shutil
 import subprocess
+import syslog
 
 from os.path import join as pjoin
 from os.path import exists,isdir
+from syslog import syslog as log
 
 # DoomRL loads score.wad and player.wad on startup, holds them in memory for its
 # entire run, and writes them out on exit.
@@ -128,15 +130,18 @@ class RegisterCommand(Command):
       return 'That name is unavailable.'
 
     # Fill in user directory
+    log('Creating a new account: %s' % name)
     print('Creating user account.')
     try:
       self.install(home, name, password)
     except Exception as e:
-      print('Error creating user directory:', e)
+      log('Error creating account %s: %s' % (name, e))
+      print('Error creating user directory.')
       print('Report this to the server administrator.')
       try:
         shutil.rmtree(home)
       except OSError as e:
+        log('Error cleaning up account %s: %s' % (name, e))
         print('Error cleaning up the half-created user directory! This username is unavailable until the admin fixes things.')
       finally:
         DoomRL.user = "guest"
@@ -220,12 +225,14 @@ class LoginCommand(Command):
       with open(os.path.join(home, 'passwd')) as f:
         passwd = f.read()
       if passwd == password:
+        log('%s successfully logged in.' % name)
         DoomRL.home = home
         DoomRL.user = name
         return
     except IOError as e:
       pass
 
+    log('Failed login attempt as %s' % name)
     DoomRL.home = None
     DoomRL.user = "guest"
     return 'Login failed.'
@@ -576,6 +583,8 @@ def main():
   from signal import signal,SIGHUP
   signal(SIGHUP, sighup)
 
+  syslog.openlog('doomrl-server', facility=syslog.LOG_DAEMON)
+
   print("""
 =================     ===============     ===============   ========  ========
 \\\\ . . . . . . .\\\\   //. . . . . . .\\\\   //. . . . . . .\\\\  \\\\. . .\\\\// . . //
@@ -626,6 +635,11 @@ Type 'help' for a list of commands.""")
       break
     except KeyboardInterrupt:
       pass
+    except Exception as e:
+      log('Unhandled exception in mainloop: %s', str(e))
+
+  if DoomRL.home:
+    log('User %s logged out.' % DoomRL.user)
   print('Goodbye!')
 
 if __name__ == '__main__':
