@@ -90,22 +90,19 @@ class RegisterCommand(Command):
 
   def install(self, home, name, password):
     """Install a personal copy of DoomRL to the given path."""
-    # The player needs their own personal player.wad, score.wad, and backup,
-    # mortem and screenshot directories.
-    # They also need a personalized name.lua that is generated on the fly.
-    # They get symlinks to colors.lua, config.lua, core.wad, doomrl, doomrl.wad,
-    # and keybindings.lua.
-    for file in ['player.wad', 'score.wad']:
-      shutil.copy(pjoin(DoomRL.doomrl, file), home)
+    # The player gets symlinks to the doomrl binary and wad files. They get
+    # their own personal backup, mortem, screenshot, and recording directories,
+    # and their own personal config files (so that they can be edited). We also
+    # customize config.lua with the player's name.
     for file in ['core.wad', 'doomrl', 'doomrl.wad']:
       os.symlink(pjoin(DoomRL.doomrl, file), pjoin(home, file))
-    for file in ['colors.lua', 'config.lua', 'keybindings.lua']:
-      os.symlink(pjoin(DoomRL.config, file), pjoin(home, file))
+    for file in os.listdir(DoomRL.config):
+      shutil.copy(pjoin(DoomRL.config, file), pjoin(home, file))
     for dir in ['backup', 'mortem', 'screenshot', 'recording']:
       os.mkdir(pjoin(home, dir))
     with open(pjoin(home, 'passwd'), 'w') as passwd:
       passwd.write(password)
-    with open(pjoin(home, 'user.lua'), 'w') as config:
+    with open(pjoin(home, 'config.lua'), 'a') as config:
       config.write('AlwaysName = "%s"\n' % name)
 
 

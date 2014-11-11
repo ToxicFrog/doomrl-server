@@ -1,40 +1,3 @@
-COMMAND_WALKNORTH         = 2;
-COMMAND_WALKSOUTH         = 3;
-COMMAND_WALKEAST          = 4;
-COMMAND_WALKWEST          = 5;
-COMMAND_WALKNE            = 6;
-COMMAND_WALKSE            = 7;
-COMMAND_WALKNW            = 8;
-COMMAND_WALKSW            = 9;
-COMMAND_WAIT              = 10;
-COMMAND_ESCAPE            = 11;
-COMMAND_OK                = 12;
-COMMAND_ENTER             = 13;
-COMMAND_UNLOAD            = 14;
-COMMAND_PICKUP            = 15;
-COMMAND_DROP              = 16;
-COMMAND_INVENTORY         = 17;
-COMMAND_EQUIPMENT         = 18;
-COMMAND_OPEN              = 19;
-COMMAND_CLOSE             = 20;
-COMMAND_LOOK              = 21;
-COMMAND_ALTFIRE           = 23;
-COMMAND_FIRE              = 24;
-COMMAND_USE               = 25;
-COMMAND_PLAYERINFO        = 26;
-COMMAND_SAVE              = 27;
-COMMAND_TACTIC            = 28;
-COMMAND_RUNMODE           = 29;
-COMMAND_MORE              = 31;
-COMMAND_EXAMINENPC        = 32;
-COMMAND_EXAMINEITEM       = 33;
-COMMAND_SWAPWEAPON        = 34;
-COMMAND_TRAITS            = 39;
-COMMAND_GRIDTOGGLE        = 40;
-
-COMMAND_SOUNDTOGGLE       = 86;
-COMMAND_MUSICTOGGLE       = 87;
-
 Keybindings = {
 	["LEFT"]         = COMMAND_WALKWEST,
 	["RIGHT"]        = COMMAND_WALKEAST,
@@ -47,6 +10,7 @@ Keybindings = {
 	["ESCAPE"]       = COMMAND_ESCAPE,
 	["CENTER"]       = COMMAND_WAIT,
 	["PERIOD"]       = COMMAND_WAIT,
+	["BEGIN"]        = COMMAND_WAIT,
 	["ENTER"]        = COMMAND_OK,
 	["M"]            = COMMAND_MORE,
 	["SHIFT+PERIOD"] = COMMAND_ENTER,
@@ -58,7 +22,12 @@ Keybindings = {
 	["O"]            = COMMAND_OPEN,
 	["C"]            = COMMAND_CLOSE,
 	["L"]            = COMMAND_LOOK,
-	["SPACE"]        = COMMAND_GRIDTOGGLE,
+	-- GRIDTOGGLE does nothing in console mode, so we bind space to be an alternate
+	-- ESCAPE instead. This is especially convenient because DoomRL has a long-
+	-- standing bug where you have to double-tap Esc in console mode before it
+	-- will register.
+	-- ["SPACE"]        = COMMAND_GRIDTOGGLE,
+	["SPACE"]        = COMMAND_ESCAPE,
 	["F"]            = COMMAND_FIRE,    -- function() command.fire() end,
 	["SHIFT+F"]      = COMMAND_ALTFIRE, -- function() command.fire( true ) end,
 	["R"]            = function() command.reload() end,
@@ -93,7 +62,20 @@ Keybindings = {
 	["8"]     = function() command.quick_weapon('plasma') end,
 	["9"]     = function() command.quick_weapon('bfg9000') end,
 
-	-- Example of complex quickkey's
+	-- Alternate keypad controls. These require you to have numlock ON, and disable
+	-- the fast weapon switch keys above. The advantage is that it means you can
+	-- now use numpad 5 as a "wait" command.
+	["8"]     = COMMAND_WALKNORTH,
+	["9"]     = COMMAND_WALKNE,
+	["6"]     = COMMAND_WALKEAST,
+	["3"]     = COMMAND_WALKSE,
+	["2"]     = COMMAND_WALKSOUTH,
+	["1"]     = COMMAND_WALKSW,
+	["4"]     = COMMAND_WALKWEST,
+	["7"]     = COMMAND_WALKNW,
+	["5"]     = COMMAND_WAIT,
+
+	-- Example of complex quickkeys
 	["SHIFT+N"]    = function()
 					if not command.use_item("smed") then
 						ui.msg("No small medpacks left!")
