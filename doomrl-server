@@ -607,7 +607,7 @@ Type 'help' for a list of commands.""")
 
   while True:
     try:
-      [cmd, args] = argsplit(input('\n%s> ' % DoomRL.user))
+      [cmd, args] = argsplit(input('\n%s> ' % DoomRL.user).strip())
       if cmd in commands:
         result = commands[cmd].run(*argsplit(args, max=commands[cmd].nargs))
         if result:
