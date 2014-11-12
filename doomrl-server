@@ -274,21 +274,10 @@ class PlayCommand(Command):
 
   nargs = 1
 
-  def run(self, force):
-    if not DoomRL.home:
-      return 'You must log in first.'
-
-    # Check that they aren't already playing *right now*.
-    recfile = DoomRL.game(DoomRL.user)
-    if exists(recfile):
-      if not force == 'force':
-        return 'You have a game already in progress! Disconnect that session first.'
-      print('You have a game already in progress! Deleting existing recording and continuing.')
-      os.remove(recfile)
-
+  def setup(self):
     # If the player has a game in progress, restore their ttyrec file.
-    if exists(recfile + '.save'):
-      os.rename(recfile + '.save', recfile)
+    if exists(self.recfile + '.save'):
+      os.rename(self.recfile + '.save', recfile)
       print('Recording of current game restored.')
 
     # Get their pre-game high scores so we can check for new ones afterwards.
@@ -298,14 +287,41 @@ class PlayCommand(Command):
     except IndexError:
       mortem_before = None
 
-    # Invoke DoomRL.
-    subprocess.call(
-      ['ttyrec', '-e', './doomrl', '-a', recfile],
+    return (scores_before,mortem_before)
+
+  def run_doomrl(self):
+    # Invoke DoomRL inside ttyrec. Rather than letting ttyrec write directly
+    # to disk, we hand it an FD and then process the contents of that fd.
+    #(rpipe,wpipe) = os.pipe()
+    #os.set_inheritable(wpipe)
+    ttyrec = subprocess.call(
+      ['ttyrec', '-e', './doomrl', '-a', self.recfile], # '/dev/fd/%d' % wpipe
       cwd=DoomRL.home)
 
+    # Now we read from the pipe and process the output until it's closed,
+    # stripping out garbage frames and writing the rest to disk.
+    #with open(ttyrec, "r") as fd:
+
+  def run(self, force):
+    if not DoomRL.home:
+      return 'You must log in first.'
+
+    # Check that they aren't already playing *right now*.
+    self.recfile = DoomRL.game(DoomRL.user)
+    if exists(self.recfile):
+      if not force == 'force':
+        return 'You have a game already in progress! Disconnect that session first.'
+      print('You have a game already in progress! Deleting existing recording and continuing.')
+      os.remove(self.recfile)
+
+    (scores,mortem) = self.setup()
+    self.run_doomrl()
+    self.shutdown(scores, mortem)
+
+  def shutdown(self, scores_before, mortem_before):
     # If the game is still in progress, save the ttyrec file.
     if exists(DoomRL.player(DoomRL.user, 'save')):
-      os.rename(recfile, recfile + '.save')
+      os.rename(self.recfile, self.recfile + '.save')
     else:
       # Otherwise, there *should* be a new high score entry and a new mortem.
       # Unless they simply didn't start a game in the first place.
