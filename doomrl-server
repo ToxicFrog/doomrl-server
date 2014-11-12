@@ -654,6 +654,7 @@ Type 'help' for a list of commands.""")
       pass
     except Exception as e:
       log('Unhandled exception in mainloop: %s' % str(e))
+      print('Error in mainloop: %s' % str(e))
 
   if DoomRL.home:
     log('User %s logged out.' % DoomRL.user)
