@@ -6,15 +6,14 @@ A nethack.alt.org-inspired frontend for hosting a multiplayer DoomRL server. Pla
 
 Before you can run it, DoomRL-server has a number of requirements:
 
-- Python 3.x
-- `stty`
+- Python 3.3+
 - `ttyrec`, `ttytime`, and `ttyplay`
 - `reset`
 - `less`
 - `nano`
 - and DoomRL itself.
 
-`stty`, `nano` and `less` are commonly installed by default. `reset` is likely to be as well, and if not is generally part of curses (the `ncurses-utils` package on SUSE, for example). `ttyrec` may need to be specifically installed.
+Python, `nano`, and `less` are commonly installed by default. `reset` is likely to be as well, and if not is generally part of curses (the `ncurses-utils` package on SUSE, for example). `ttyrec` may need to be specifically installed.
 
 DoomRL should be unpacked into doomrl-server's `doomrl/` directory (so that `doomrl/doomrl` is the doomrl binary itself). The sound files are not used, so the "low-quality" version of DoomRL is sufficient.
 
