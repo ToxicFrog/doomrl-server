@@ -2,6 +2,7 @@
 
 import datetime
 import os
+import re
 import readline
 import shutil
 import subprocess
@@ -9,7 +10,9 @@ import syslog
 
 from os.path import join as pjoin
 from os.path import exists,isdir
+from struct import pack,unpack
 from syslog import syslog as log
+from time import time
 
 # DoomRL loads score.wad and player.wad on startup, holds them in memory for its
 # entire run, and writes them out on exit.
@@ -292,15 +295,54 @@ class PlayCommand(Command):
   def run_doomrl(self):
     # Invoke DoomRL inside ttyrec. Rather than letting ttyrec write directly
     # to disk, we hand it an FD and then process the contents of that fd.
-    #(rpipe,wpipe) = os.pipe()
-    #os.set_inheritable(wpipe)
-    ttyrec = subprocess.call(
-      ['ttyrec', '-e', './doomrl', '-a', self.recfile], # '/dev/fd/%d' % wpipe
+    (rpipe,wpipe) = os.pipe()
+    ttyrec = subprocess.Popen(
+      ['ttyrec', '-e', './doomrl', '-a', '/dev/fd/%d' % wpipe],
+      pass_fds=(0,1,2,wpipe),
       cwd=DoomRL.home)
+    os.close(wpipe)
+
+    last_pos,last_sgr = (None,None)
+    def strip_pos(match):
+      nonlocal last_pos
+      if match.group(0) == last_pos:
+        return b''
+      last_pos = match.group(0)
+      return match.group(0)
+    def strip_sgr(match):
+      nonlocal last_sgr
+      if match.group(0) == last_sgr:
+        return b''
+      last_sgr = match.group(0)
+      return match.group(0)
 
     # Now we read from the pipe and process the output until it's closed,
     # stripping out garbage frames and writing the rest to disk.
-    #with open(ttyrec, "r") as fd:
+    with open(self.recfile, "ab") as fd:
+      delta = 0
+      last_s = int(time())
+      while True:
+        # read frame
+        header = os.read(rpipe, 12)
+        if not header:
+          break
+        (s, us, sz) = unpack("III", header)
+        data = os.read(rpipe, sz)
+        # strip out garbage commands
+        trimmed = re.sub(b'\x1B\\[\\d+;\\d+H', strip_pos, data)
+        trimmed = re.sub(b'\x1B\\[[\\d;]+m', strip_sgr, trimmed)
+        trimmed = re.sub(b'\x1B\\[\\?7l', b'', trimmed)
+        if trimmed:
+          # if the frame survived, correct timestamp and write it
+          if (s - delta) - last_s > 2:
+            delta = s - last_s - 1
+          s -= delta
+          last_s = s
+          fd.write(pack("III", s, us, sz))
+          fd.write(data)
+
+    ttyrec.wait()
+    os.close(rpipe)
 
   def run(self, force):
     if not DoomRL.home:
