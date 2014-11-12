@@ -35,6 +35,10 @@ class DoomRL(object):
     return pjoin(cls.players, *args)
 
   @classmethod
+  def player_exists(cls, player):
+    return os.path.isdir(cls.player(player))
+
+  @classmethod
   def game(cls, *args):
     return pjoin(cls.games, *args)
 
@@ -325,7 +329,6 @@ class PlayCommand(Command):
             fd.write(str(score) + '\n')
           break
 
-
       # We also save the ttyrec file, using the date from the postmortem.
       ttyrec = '[%s] %s.ttyrec' % (when, DoomRL.user)
       os.rename(
@@ -419,6 +422,8 @@ class ReplayCommand(Command):
   def run(self, player, id):
     if not player:
       return self.list_players()
+    elif not DoomRL.player_exists(player):
+      return 'No such player: %s' % player
     elif not id:
       return self.list_replays(player)
 
@@ -636,7 +641,7 @@ Type 'help' for a list of commands.""")
     except KeyboardInterrupt:
       pass
     except Exception as e:
-      log('Unhandled exception in mainloop: %s', str(e))
+      log('Unhandled exception in mainloop: %s' % str(e))
 
   if DoomRL.home:
     log('User %s logged out.' % DoomRL.user)
