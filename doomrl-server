@@ -6,6 +6,7 @@ import re
 import readline
 import shutil
 import subprocess
+import sys
 import syslog
 
 from os.path import join as pjoin
@@ -22,6 +23,7 @@ from time import time
 # unless we can reverse engineer the CRC. It looks the right size to be md5.
 
 class DoomRL(object):
+  """Global state for the DoomRL server."""
   # Set up paths
   root = os.getenv('DOOMRL_SERVER') or os.path.dirname(os.path.realpath(__file__))
   config = pjoin(root, 'config')
@@ -67,6 +69,62 @@ class DoomRL(object):
     except FileNotFoundError:
       return []
 
+class TTYRec(object):
+  """A wrapper for a binary file holding a DoomRL TTYRec."""
+  def __init__(self, path):
+    self.last_sgr = None
+    self.last_pos = None
+    self.last_s = int(time())
+    self.delta = 0
+
+    # If the file exists, read it to determine our current timestamp
+    if exists(path):
+      self.set_time_from(path)
+
+    # Open the file for append
+    self.fd = open(path, "ab")
+
+  def __enter__(self):
+    return self
+
+  def __exit__(self, type, value, stack):
+    self.fd.close()
+
+  def set_time_from(self, path):
+    with open(path, "rb") as fd:
+      while True:
+        header = fd.read(12)
+        if not header:
+          break
+        (s, us, sz) = unpack("III", header)
+        fd.read(sz)
+        self.last_s = s
+
+  def strip_pos(self, match):
+    if match.group(0) == self.last_pos:
+      return b''
+    self.last_pos = match.group(0)
+    return match.group(0)
+
+  def strip_sgr(self, match):
+    if match.group(0) == self.last_sgr:
+      return b''
+    self.last_sgr = match.group(0)
+    return match.group(0)
+
+  def write(self, s, us, sz, data):
+    # strip out garbage commands
+    trimmed = re.sub(b'\x1B\\[\\d+;\\d+H', self.strip_pos, data)
+    trimmed = re.sub(b'\x1B\\[[\\d;]+m', self.strip_sgr, trimmed)
+    trimmed = re.sub(b'\x1B\\[\\?7l', b'', trimmed)
+    if trimmed:
+      # if the frame survived, correct timestamp and write it
+      if (s - self.delta) - self.last_s > 2:
+        self.delta = s - self.last_s - 1
+      s -= self.delta
+      self.last_s = s
+      self.fd.write(pack("III", s, us, sz))
+      self.fd.write(data)
 
 
 commands = {}
@@ -210,7 +268,6 @@ class ConfigCommand(Command):
     subprocess.call(
       ['nano', '-R', pjoin(DoomRL.home, file + '.lua')])
 
-
 class LoginCommand(Command):
   """login <name> <pass> -- log in to an existing account.
 
@@ -266,21 +323,26 @@ class HelpCommand(Command):
       print(getdoc(commands[cmd]))
 
 class PlayCommand(Command):
-  """play [force] -- play a game of DoomRL.
+  """play [replace|resume] -- play a game of DoomRL.
 
   The game will automatically be recorded and made available for spectating.
 
-  If run as 'play force', will play even if it looks like you already have a game
-  in progress on another connection. Note that this will result in the recording
-  for that other game being lost, and potentially in DoomRL high score/player
-  rank information being lost as well."""
+  If you have an open replay file, the server will assume that you are already
+  playing DoomRL in another window and refuse to start. If you are not actually
+  playing DoomRL (for example, the server crashed while you were playing and
+  left behind an open replay file), you can override this with 'replay replace'
+  or 'replay resume'.
+
+  'replace' will delete the existing replay file and replace it with a new one;
+  'resume' will add to it.
+  """
 
   nargs = 1
 
   def setup(self):
     # If the player has a game in progress, restore their ttyrec file.
     if exists(self.recfile + '.save'):
-      os.rename(self.recfile + '.save', recfile)
+      os.rename(self.recfile + '.save', self.recfile)
       print('Recording of current game restored.')
 
     # Get their pre-game high scores so we can check for new ones afterwards.
@@ -302,46 +364,17 @@ class PlayCommand(Command):
       cwd=DoomRL.home)
     os.close(wpipe)
 
-    last_pos,last_sgr = (None,None)
-    def strip_pos(match):
-      nonlocal last_pos
-      if match.group(0) == last_pos:
-        return b''
-      last_pos = match.group(0)
-      return match.group(0)
-    def strip_sgr(match):
-      nonlocal last_sgr
-      if match.group(0) == last_sgr:
-        return b''
-      last_sgr = match.group(0)
-      return match.group(0)
-
     # Now we read from the pipe and process the output until it's closed,
     # stripping out garbage frames and writing the rest to disk.
-    with open(self.recfile, "ab") as fd:
-      delta = 0
-      last_s = int(time())
+    with TTYRec(self.recfile) as rec:
       while True:
-        # read frame
         header = os.read(rpipe, 12)
         if not header:
           break
         (s, us, sz) = unpack("III", header)
         data = os.read(rpipe, sz)
-        # strip out garbage commands
-        trimmed = re.sub(b'\x1B\\[\\d+;\\d+H', strip_pos, data)
-        trimmed = re.sub(b'\x1B\\[[\\d;]+m', strip_sgr, trimmed)
-        trimmed = re.sub(b'\x1B\\[\\?7l', b'', trimmed)
-        if trimmed:
-          # if the frame survived, correct timestamp and write it
-          if (s - delta) - last_s > 2:
-            delta = s - last_s - 1
-          s -= delta
-          last_s = s
-          fd.write(pack("III", s, us, sz))
-          fd.write(data)
+        rec.write(s, us, sz, data)
 
-    ttyrec.wait()
     os.close(rpipe)
 
   def run(self, force):
@@ -351,14 +384,27 @@ class PlayCommand(Command):
     # Check that they aren't already playing *right now*.
     self.recfile = DoomRL.game(DoomRL.user)
     if exists(self.recfile):
-      if not force == 'force':
-        return 'You have a game already in progress! Disconnect that session first.'
-      print('You have a game already in progress! Deleting existing recording and continuing.')
-      os.remove(self.recfile)
+      if force == "replace":
+        print('Replacing old replay file.')
+        os.remove(self.recfile)
+      elif force == "resume":
+        print('Resuming old replay file.')
+        # Nothing to do here, the TTYRec object will find it automatically.
+      else:
+        return 'You have a game already in progress! Quit that game first.'
 
     (scores,mortem) = self.setup()
-    self.run_doomrl()
-    self.shutdown(scores, mortem)
+    try:
+      self.run_doomrl()
+    except Exception as e:
+      # If something went wrong while playing DoomRL, the terminal is probably
+      # completely hosed and there may still be processes running in the
+      # background. Nothing to do here but die and hope the SIGHUP gets them.
+      subprocess.call(['reset'])
+      print('Fatal error running DoomRL:', e)
+      sys.exit(1)
+    finally:
+      self.shutdown(scores, mortem)
 
   def shutdown(self, scores_before, mortem_before):
     # If the game is still in progress, save the ttyrec file.
