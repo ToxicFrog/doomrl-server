@@ -180,7 +180,7 @@ class RegisterCommand(Command):
       os.symlink(pjoin(DoomRL.doomrl, file), pjoin(home, file))
     for file in os.listdir(DoomRL.config):
       shutil.copy(pjoin(DoomRL.config, file), pjoin(home, file))
-    for dir in ['backup', 'mortem', 'screenshot', 'recording', 'saves']:
+    for dir in ['backup', 'mortem', 'screenshot', 'saves', 'archive']:
       os.mkdir(pjoin(home, dir))
     with open(pjoin(home, 'passwd'), 'w') as passwd:
       passwd.write(password)
@@ -447,21 +447,21 @@ class PlayCommand(Command):
         os.remove(DoomRL.game(DoomRL.user))
         return
 
-      when = mortem[1:20]
+      # Write the new score entry to the player's scores file.
       scores_after = DoomRL.scores(DoomRL.user)
+      n = len(scores_after)
       for (i,score) in enumerate(scores_after):
         if i >= len(scores_before) or scores_before[i] != score:
-          # Write the scoreline to the last line of the mortem so that we can
-          # easily match it up later when generating the HTML interface.
-          with open(DoomRL.homedir('mortem', mortem), 'a') as fd:
+          with open(DoomRL.homedir('archive', 'scores'), "a") as fd:
+            score['n'] = n
             fd.write(str(score) + '\n')
-          break
+            break
 
-      # We also save the ttyrec file, using the date from the postmortem.
-      ttyrec = '[%s] %s.ttyrec' % (when, DoomRL.user)
-      os.rename(
-        DoomRL.game(DoomRL.user),
-        DoomRL.homedir('recording', ttyrec))
+      # Save the ttyrec and mortem files to the player archive directory.
+      os.rename(DoomRL.game(DoomRL.user),
+                DoomRL.homedir('archive', '%d.ttyrec' % n))
+      shutil.copy(DoomRL.homedir('mortem', mortem),
+                  DoomRL.homedir('archive', '%d.mortem' % n))
 
 class WatchCommand(Command):
   """watch <player> -- watch an in-progress game of DoomRL.
