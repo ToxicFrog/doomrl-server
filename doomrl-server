@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import datetime
+import json
 import os
 import re
 import readline
@@ -28,7 +29,7 @@ class DoomRL(object):
   root = os.getenv('DOOMRL_SERVER') or os.path.dirname(os.path.realpath(__file__))
   config = pjoin(root, 'config')
   doomrl = pjoin(root, 'doomrl')
-  games = pjoin(root, 'games')
+  playing = pjoin(root, 'games')
   players = pjoin(root, 'players')
   www = pjoin(root, 'www')
   # Global state
@@ -73,15 +74,29 @@ class DoomRL(object):
 
   @classmethod
   def scores(cls, player):
-    """A list of all highscore entries for a given player."""
+    """The contents of a player's score.wad."""
+    difficulties = ['', 'E', 'M', 'H', 'U', 'N!']
+    def fixtypes(node):
+      node['difficulty'] = difficulties[int(node['difficulty'])]
+      for field in ['score', 'depth', 'level']:
+        node[field] = int(node[field])
+      return node
+
     import gzip
     import xml.etree.ElementTree as etree
     try:
       with gzip.open(cls.player(player, 'score.wad')) as fd:
         xml = etree.parse(fd)
-      return [entry.attrib for entry in xml.getroot().findall('entry')]
+      return [fixtypes(entry.attrib) for entry in xml.getroot().findall('entry')]
     except FileNotFoundError:
       return []
+
+  @classmethod
+  def games(cls, player):
+    """All of a player's completed games that we know of."""
+    with open(cls.player(player, 'archive', 'scores')) as fd:
+      return [json.loads(line) for line in fd]
+
 
 class TTYRec(object):
   """A wrapper for a binary file holding a DoomRL TTYRec."""
@@ -454,7 +469,7 @@ class PlayCommand(Command):
         if i >= len(scores_before) or scores_before[i] != score:
           with open(DoomRL.homedir('archive', 'scores'), "a") as fd:
             score['n'] = n
-            fd.write(str(score) + '\n')
+            fd.write(json.dumps(score) + '\n')
             break
 
       # Save the ttyrec and mortem files to the player archive directory.
@@ -486,7 +501,7 @@ class WatchCommand(Command):
       print('SECONDS PLAYER')
       for player in DoomRL.all_players():
         if exists(DoomRL.game(player)):
-          subprocess.call(['ttytime', player], cwd=DoomRL.games)
+          subprocess.call(['ttytime', player], cwd=DoomRL.playing)
       return
 
     if not exists(DoomRL.game(player)):
@@ -496,11 +511,11 @@ class WatchCommand(Command):
       # First we 'catch up' by playing the game so far at 16x speed.
       subprocess.call(
         ['ttyplay', '-s', '16', player],
-        cwd=DoomRL.games)
+        cwd=DoomRL.playing)
       # Then we peek at what remains.
       subprocess.call(
         ['ttyplay', '-p', player],
-        cwd=DoomRL.games)
+        cwd=DoomRL.playing)
     except KeyboardInterrupt:
       pass
     finally:
@@ -592,31 +607,30 @@ class ScoresCommand(Command):
 
   def run(self, player):
     if not player:
-      scores = []
+      games = []
       for player in DoomRL.all_players():
-        scores += DoomRL.scores(player)
+        games += DoomRL.games(player)
     else:
-      scores = DoomRL.scores(player)
+      games = DoomRL.games(player)
 
-    scores.sort(reverse=True, key=lambda s: int(s['score']))
+    games.sort(reverse=True, key=lambda s: int(s['score']))
 
-    difficulties = ['', 'E', 'M', 'H', 'U', 'N!']
-    classes = { 'marine': 'M', 'scout': 'S', 'technician': 'T' }
     less = subprocess.Popen(
       ['less'],
       universal_newlines=True,
       env={'LESSSECURE': '1', 'TERM': os.getenv('TERM')},
       stdin=subprocess.PIPE)
-    for score in scores:
-      less.stdin.write(' %2s %7s %-24s %sL:%-2s %-34s L%-2s %s\n' % (
-        difficulties[int(score['difficulty'])],
-        score['score'],
-        score['name'],
-        classes[score['klass']],
-        score['level'],
-        score['killed'],
-        score['depth'],
-        score.get('challenge', '')))
+    for game in games:
+      less.stdin.write(' %4d | %2s %7d %-24s %sL:%-2d %-34s DL%-2d %s\n' % (
+        game['n'],
+        game['difficulty'],
+        game['score'],
+        game['name'],
+        game['klass'][0].upper(),
+        game['level'],
+        game['killed'],
+        game['depth'],
+        game.get('challenge', '')))
     less.stdin.close()
     less.wait()
 
