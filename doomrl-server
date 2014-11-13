@@ -180,7 +180,7 @@ class RegisterCommand(Command):
       os.symlink(pjoin(DoomRL.doomrl, file), pjoin(home, file))
     for file in os.listdir(DoomRL.config):
       shutil.copy(pjoin(DoomRL.config, file), pjoin(home, file))
-    for dir in ['backup', 'mortem', 'screenshot', 'recording']:
+    for dir in ['backup', 'mortem', 'screenshot', 'recording', 'saves']:
       os.mkdir(pjoin(home, dir))
     with open(pjoin(home, 'passwd'), 'w') as passwd:
       passwd.write(password)
@@ -334,27 +334,29 @@ class HelpCommand(Command):
       print(getdoc(commands[cmd]))
 
 class PlayCommand(Command):
-  """play [replace|resume] -- play a game of DoomRL.
+  """play <name> -- start or continue a game of DoomRL.
+
+  Without arguments, list your saved games. With a name, start or resume a game
+  with that name.
 
   The game will automatically be recorded and made available for spectating.
 
-  If you have an open replay file, the server will assume that you are already
-  playing DoomRL in another window and refuse to start. If you are not actually
-  playing DoomRL (for example, the server crashed while you were playing and
-  left behind an open replay file), you can override this with 'replay replace'
-  or 'replay resume'.
-
-  'replace' will delete the existing replay file and replace it with a new one;
-  'resume' will add to it.
+  If you save and quit, the savegame will be automatically archived under the
+  name you chose. You can resume it later by providing the same name, or start
+  a new game in parallel by providing a different one. This allows you to (for
+  example) have a long running Angel of 666 game in one save, while still taking
+  breaks for shorter standard games.
   """
 
   nargs = 1
 
-  def setup(self):
-    # If the player has a game in progress, restore their ttyrec file.
-    if exists(self.recfile + '.save'):
-      os.rename(self.recfile + '.save', self.recfile)
+  def setup(self, name):
+    # If the player has a game in progress, restore their ttyrec and save.
+    if exists(self.recfile + '.' + name):
+      os.rename(self.recfile + '.' + name, self.recfile)
       print('Recording of current game restored.')
+    if exists(DoomRL.homedir('saves', name)):
+      os.rename(DoomRL.homedir('saves', name), DoomRL.homedir('save'))
 
     # Get their pre-game high scores so we can check for new ones afterwards.
     scores_before = DoomRL.scores(DoomRL.user)
@@ -388,23 +390,33 @@ class PlayCommand(Command):
 
     os.close(rpipe)
 
-  def run(self, force):
+  def run(self, name):
     if not DoomRL.home:
       return 'You must log in first.'
+
+    if not name:
+      # List games in progress
+      saves = os.listdir(DoomRL.homedir('saves'))
+      if not saves:
+        print('You have no games in progress.')
+      else:
+        print('Games in progress:')
+        for save in saves:
+          print('\t', save)
+        print('Type "play <name>" to resume one.')
+      return
+
+    # We can be a bit looser about names here, but for simplicity's sake we
+    # just reuse the name validation code we use for player names.
+    if not DoomRL.name_valid(name):
+      return 'Invalid save name.'
 
     # Check that they aren't already playing *right now*.
     self.recfile = DoomRL.game(DoomRL.user)
     if exists(self.recfile):
-      if force == "replace":
-        print('Replacing old replay file.')
-        os.remove(self.recfile)
-      elif force == "resume":
-        print('Resuming old replay file.')
-        # Nothing to do here, the TTYRec object will find it automatically.
-      else:
-        return 'You have a game already in progress! Quit that game first.'
+      return 'You are already playing in another window! Quit that game first.'
 
-    (scores,mortem) = self.setup()
+    (scores,mortem) = self.setup(name)
     try:
       self.run_doomrl()
     except Exception as e:
@@ -415,12 +427,13 @@ class PlayCommand(Command):
       print('Fatal error running DoomRL:', e)
       sys.exit(1)
     finally:
-      self.shutdown(scores, mortem)
+      self.shutdown(name, scores, mortem)
 
-  def shutdown(self, scores_before, mortem_before):
+  def shutdown(self, name, scores_before, mortem_before):
     # If the game is still in progress, save the ttyrec file.
     if exists(DoomRL.player(DoomRL.user, 'save')):
-      os.rename(self.recfile, self.recfile + '.save')
+      os.rename(self.recfile, self.recfile + '.' + name)
+      os.rename(DoomRL.homedir('save'), DoomRL.homedir('saves', name))
     else:
       # Otherwise, there *should* be a new high score entry and a new mortem.
       # Unless they simply didn't start a game in the first place.
