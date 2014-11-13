@@ -97,6 +97,20 @@ class DoomRL(object):
     with open(cls.player(player, 'archive', 'scores')) as fd:
       return [json.loads(line) for line in fd]
 
+  @classmethod
+  def scoreline(cls, game):
+    return ' %4d | %2s %7d %-24s %sL:%-2d %-34s DL%-2d %s' % (
+      game['n'],
+      game['difficulty'],
+      game['score'],
+      game['name'],
+      game['klass'][0].upper(),
+      game['level'],
+      game['killed'],
+      game['depth'],
+      game.get('challenge', ''))
+
+
 
 class TTYRec(object):
   """A wrapper for a binary file holding a DoomRL TTYRec."""
@@ -532,35 +546,34 @@ class ReplayCommand(Command):
 
   You can also use "latest" to view the latest replay for that player.
 
-  If you know the exact timestamp of the replay (also given in the list), you
-  can use that in place of the replay number.
-
   Replay controls:
     f or +: go faster
     s or -: go slower
     1: reset speed
     ctrl-c: exit replay
-    anything else: skip to the next player input (useful for long idle periods)
   """
 
   nargs = 2
 
   def replays(self, player):
-    return sorted(os.listdir(DoomRL.player(player, 'recording')))
+    return [game for game in DoomRL.games(player)
+            if exists(DoomRL.player(game['name'], 'archive', '%d.ttyrec' % game['n']))]
 
   def list_players(self):
     """List all players with recordings, and how many."""
-    print(' NUM  PLAYER')
+    print('  NUM | PLAYER')
     for player in DoomRL.all_players():
       replays = len(self.replays(player))
       if replays > 0:
-        print('%4d  %s' % (replays, player))
+        print(' %4d | %s' % (replays, player))
 
   def list_replays(self, player):
     """List all recordings for this player."""
-    print('  ID  TIME')
-    for (index, replay) in enumerate(self.replays(player)):
-      print('%4d  %s' % (index, replay[1:20]))
+    print('   # | SCORE')
+    replays = self.replays(player)
+    replays.sort(key=lambda s: s['n'])
+    for replay in replays:
+      print(DoomRL.scoreline(replay))
 
   def run(self, player, id):
     if not player:
@@ -573,20 +586,20 @@ class ReplayCommand(Command):
     # Replay the named recording.
     replays = self.replays(player)
     if id == "latest":
-      recname = replays[-1]
+      id = replays[-1]['n']
     else:
       try:
-        recname = replays[int(id)]
+        id = int(id)
       except:
-        recname = '[%s] %s.ttyrec' % (id, player)
+        return 'Invalid replay ID.'
 
-    if not exists(DoomRL.player(player, 'recording', recname)):
-      return 'No such replay found.'
+    if not exists(DoomRL.player(player, 'archive', '%d.ttyrec' % id)):
+      return 'No replay with that ID found for that player.'
 
     try:
       subprocess.call(
-        ['ttyplay', recname],
-        cwd=DoomRL.player(player, 'recording'))
+        ['ttyplay', DoomRL.player(player, 'archive', '%d.ttyrec' % id)],
+        cwd=DoomRL.player(player, 'archive'))
     except KeyboardInterrupt:
       pass
     finally:
@@ -621,16 +634,7 @@ class ScoresCommand(Command):
       env={'LESSSECURE': '1', 'TERM': os.getenv('TERM')},
       stdin=subprocess.PIPE)
     for game in games:
-      less.stdin.write(' %4d | %2s %7d %-24s %sL:%-2d %-34s DL%-2d %s\n' % (
-        game['n'],
-        game['difficulty'],
-        game['score'],
-        game['name'],
-        game['klass'][0].upper(),
-        game['level'],
-        game['killed'],
-        game['depth'],
-        game.get('challenge', '')))
+      less.stdin.write(DoomRL.scoreline(game) + '\n')
     less.stdin.close()
     less.wait()
 
