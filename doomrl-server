@@ -593,12 +593,13 @@ class ReplayCommand(Command):
       except:
         return 'Invalid replay ID.'
 
-    if not exists(DoomRL.player(player, 'archive', '%d.ttyrec' % id)):
+    replay = DoomRL.player(player, 'archive', '%d.ttyrec' % id)
+    if not exists(replay):
       return 'No replay with that ID found for that player.'
 
     try:
       subprocess.call(
-        ['ttyplay', DoomRL.player(player, 'archive', '%d.ttyrec' % id)],
+        ['ttyplay', replay],
         cwd=DoomRL.player(player, 'archive'))
     except KeyboardInterrupt:
       pass
@@ -652,52 +653,57 @@ class MortemCommand(Command):
 
   nargs = 2
 
+  def mortems(self, player):
+    return [game for game in DoomRL.games(player)
+            if exists(DoomRL.player(game['name'], 'archive', '%d.mortem' % game['n']))]
+
   def list_players(self):
     """List all players with mortems, and how many."""
-    print(' NUM  PLAYER')
+    print('  NUM | PLAYER')
     for player in DoomRL.all_players():
-      mortems = len(DoomRL.mortems(player))
+      mortems = len(self.mortems(player))
       if mortems > 0:
-        print('%4d  %s' % (mortems, player))
+        print(' %4d | %s' % (mortems, player))
 
   def list_mortems(self, player):
     """List all mortems for this player."""
-    print('  ID  TIME')
-    for (index, mortem) in enumerate(DoomRL.mortems(player)):
-      print('%4d  %s' % (index, mortem[1:20]))
+    print('   # | SCORE')
+    mortems = self.mortems(player)
+    mortems.sort(key=lambda s: s['n'])
+    for mortem in mortems:
+      print(DoomRL.scoreline(mortem))
 
   def run(self, player, id):
     if not player:
       return self.list_players()
+    elif not DoomRL.player_exists(player):
+      return 'No such player: %s' % player
     elif not id:
       return self.list_mortems(player)
 
-    mortems = DoomRL.mortems(player)
+    mortems = self.mortems(player)
     if id == "latest":
-      mortem = mortems[-1]
+      id = mortems[-1]['n']
     else:
       try:
-        mortem = mortems[int(id)]
+        id = int(id)
       except:
-        mortem = '[%s] %s.txt' % (id, player)
+        return 'Invalid mortem ID.'
 
-    if not exists(DoomRL.player(player, 'mortem', mortem)):
-      return 'No such mortem found.'
+    mortem = DoomRL.player(player, 'archive', '%d.mortem' % id)
+    if not exists(mortem):
+      return 'No mortem with that ID found for that player.'
 
     try:
       subprocess.call(
         ['less', '-d', '-M', mortem],
-        cwd=DoomRL.player(player, 'mortem'),
+        cwd=DoomRL.player(player, 'archive'),
         env={
           'LESSSECURE': '1',
           'TERM': os.getenv('TERM')
         })
     except KeyboardInterrupt:
       pass
-    finally:
-      pass
-      #subprocess.call(['reset'])
-
 
 def sighup(sig, frame):
   """Signal handler for SIGHUP, which is raised when the user disconnects suddenly."""
