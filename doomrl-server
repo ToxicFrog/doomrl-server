@@ -36,30 +36,44 @@ class DoomRL(object):
   home = None
 
   @classmethod
+  def name_valid(cls, name):
+    """Check if a player or game name is legal."""
+    return 0 < len(name) <= 24 and bytes(name, encoding='utf8').isalnum()
+
+  @classmethod
+  def homedir(cls, *args):
+    return pjoin(cls.home, *args)
+
+  @classmethod
   def player(cls, *args):
+    """Get the directory for a given player."""
     return pjoin(cls.players, *args)
 
   @classmethod
   def player_exists(cls, player):
+    """Check if a player exists."""
     return os.path.isdir(cls.player(player))
 
   @classmethod
   def game(cls, *args):
+    """Get a game-in-progress replay file."""
     return pjoin(cls.games, *args)
 
   @classmethod
   def all_players(cls):
+    """A list of all players."""
     return sorted([
       p for p in os.listdir(cls.players)
       if isdir(cls.player(p)) and not p.startswith('.')])
 
   @classmethod
   def mortems(cls, player):
+    """A list of all mortems for a given player."""
     return sorted(os.listdir(cls.player(player, 'mortem')))
-
 
   @classmethod
   def scores(cls, player):
+    """A list of all highscore entries for a given player."""
     import gzip
     import xml.etree.ElementTree as etree
     try:
@@ -156,9 +170,6 @@ class RegisterCommand(Command):
 
   nargs = 2
 
-  def name_valid(self, name):
-    return 0 < len(name) <= 24 and bytes(name, encoding='utf8').isalnum()
-
   def install(self, home, name, password):
     """Install a personal copy of DoomRL to the given path."""
     # The player gets symlinks to the doomrl binary and wad files. They get
@@ -179,7 +190,7 @@ class RegisterCommand(Command):
 
   def run(self, name, password):
     # Check name validity
-    if not self.name_valid(name):
+    if not DoomRL.name_valid(name):
       return 'Invalid name.'
 
     # Check that password was specified
@@ -247,8 +258,8 @@ class ConfigCommand(Command):
     if reset and file == "all":
       print("Restoring default configuration files.")
       for file in os.listdir(DoomRL.config):
-        shutil.copy(pjoin(DoomRL.config, file), pjoin(DoomRL.home, file))
-      with open(pjoin(DoomRL.home, 'config.lua'), 'a') as config:
+        shutil.copy(pjoin(DoomRL.config, file), DoomRL.homedir(file))
+      with open(DoomRL.homedir('config.lua'), 'a') as config:
         config.write('AlwaysName = "%s"\n' % DoomRL.user)
       return
 
@@ -266,7 +277,7 @@ class ConfigCommand(Command):
 
     # Use Nano in secure mode to edit the file.
     subprocess.call(
-      ['nano', '-R', pjoin(DoomRL.home, file + '.lua')])
+      ['nano', '-R', DoomRL.homedir(file + '.lua')])
 
 class LoginCommand(Command):
   """login <name> <pass> -- log in to an existing account.
@@ -429,7 +440,7 @@ class PlayCommand(Command):
         if i >= len(scores_before) or scores_before[i] != score:
           # Write the scoreline to the last line of the mortem so that we can
           # easily match it up later when generating the HTML interface.
-          with open(pjoin(DoomRL.home, 'mortem', mortem), 'a') as fd:
+          with open(DoomRL.homedir('mortem', mortem), 'a') as fd:
             fd.write(str(score) + '\n')
           break
 
@@ -437,7 +448,7 @@ class PlayCommand(Command):
       ttyrec = '[%s] %s.ttyrec' % (when, DoomRL.user)
       os.rename(
         DoomRL.game(DoomRL.user),
-        pjoin(DoomRL.home, 'recording', ttyrec))
+        DoomRL.homedir('recording', ttyrec))
 
 class WatchCommand(Command):
   """watch <player> -- watch an in-progress game of DoomRL.
@@ -677,7 +688,7 @@ def sighup(sig, frame):
       what = '[%s] %s.ttyrec' % (when, DoomRL.user)
       os.rename(
         DoomRL.game(DoomRL.user),
-        pjoin(DoomRL.home, 'recording', what))
+        DoomRL.homedir('recording', what))
     except FileNotFoundError:
       pass
 
