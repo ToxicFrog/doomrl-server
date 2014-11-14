@@ -1,0 +1,122 @@
+#!/usr/bin/python3
+
+import json
+import os
+import re
+import shutil
+import sys
+
+from os.path import join
+
+import doomrl
+
+angels = {
+  'Berserk': 'AoB',
+  'Marksmanship': 'AoMr',
+  'Shotgunnery': 'AoSh',
+  'Light Travel': 'AoLT',
+  'Impatience': 'AoI',
+  'Confidence': 'AoCn',
+  'Purity': 'AoP',
+  'Red Alert': 'AoRA',
+  'Darkness': 'AoD',
+  'Max Carnage': 'AoMC',
+  'Masochism': 'AoMs',
+  '100': 'A100',
+  'Pacifism': 'AoPc',
+  'Humanity': 'AoHu',
+  'Overconfidence': 'AoOC',
+}
+
+def install_wad(wad):
+  shutil.copy(wad, doomrl.home())
+
+# This is where the magic happens. We need to read the mortems, and match
+# each mortem we find to a high score list entry. We can easily extract
+# character level, name, and score; in most cases, just score is enough.
+# Unfortunately, if the player tends to splat a lot on Phobos Entry, they
+# can easily end up with multiple games with identical scores and XLs (and
+# quite possibly identical names and character classes as well). This requires
+# us to figure out what killed them, too, which is much harder.
+# If even after looking at all this stuff we can't figure it out, the player
+# probably can't either and we should just pick the first one.
+def install_mortems(mortems):
+  print('importing DoomRL mortem directory and linking with scores')
+  scores = doomrl.raw_scores()
+  for (n,file) in enumerate(sorted(os.listdir(mortems))):
+    shutil.copy(join(mortems, file), doomrl.home('archive', '%d.mortem' % (n+1)))
+    mortem = open(join(mortems, file), 'r').read().split('\n')
+
+    angel = None
+    for line in mortem:
+      match = re.match(r" ([^,]+), level (\d+) .* (Marine|Scout|Technician),", line)
+      if match:
+        (name, level, klass) = match.groups()
+        continue
+      match = re.match(r' He survived \d+ turns and scored (\d+) points\.', line)
+      if match:
+        points = int(match.group(1))
+        continue
+      match = re.match(r' He was an Angel of (.*)!', line)
+      if match:
+        angel = angels[match.group(1)]
+        continue
+
+    candidates = [score for score in scores
+                  if score['charname'] == name
+                  and score['score'] == int(points)
+                  and score['klass'] == klass.lower()
+                  and score.get('challenge', None) == angel]
+    if len(candidates) == 0:
+      print('%d: no candidate scorelines found' % (n+1), name, points, klass, angel)
+      continue
+    elif len(candidates) > 1:
+      print('%d: %d candidates, writing duplicate scorelines, please edit and correct' % (n+1, len(candidates)))
+
+    with open(doomrl.home('archive', 'scores'), 'a') as fd:
+      for score in candidates:
+        score['n'] = n+1
+        fd.write(json.dumps(score) + '\n')
+
+def import_scores():
+  # This is called iff we have no mortem files. In that case, we have no idea
+  # what order the score entries were written in. We settle for ordering them
+  # by increasing score.
+  print('importing DoomRL score list')
+  with open(doomrl.home('archive', 'scores'), "a") as fd:
+    for (n,score) in enumerate(sorted(doomrl.raw_scores(), key=lambda x: x['score'])):
+      score['n'] = n+1
+      score['charname'] = score['name']
+      score['name'] = doomrl.user()
+      fd.write(json.dumps(score) + '\n')
+
+# We basically have three operating modes here.
+# Regardless of the other arguments, we copy player_wad into place.
+# Then, if we have score_wad and not mortems, we convert it into doomrl-server
+# JSON format in ascending score order (and copy the wad into place so the game
+# can see it).
+# If we have score_wad *and* mortems, we copy the mortems into archive, and then
+# try to match up the score entries to the mortems so that we know the numbering
+# of the scorelines.
+def main(_, name, player_wad, scores_wad=None, mortems=None):
+  if not doomrl.user_exists(name):
+    print('No such user %s' % name)
+    return 1
+
+  doomrl.login(name)
+  print('importing player.wad')
+  install_wad(player_wad)
+
+  if scores_wad:
+    print('importing score.wad')
+    install_wad(scores_wad)
+    # Clear existing archive directory
+    shutil.rmtree(doomrl.home('archive'))
+    os.mkdir(doomrl.home('archive'))
+    if mortems:
+      install_mortems(mortems)
+    else:
+      import_scores()
+
+if __name__ == '__main__':
+  sys.exit(main(*sys.argv))
