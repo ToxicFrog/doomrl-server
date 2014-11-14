@@ -35,6 +35,15 @@ ColorBlindMode   = false
 -- (useful in BlindMode)
 ClearMessages    = false
 
+-- Setting to true will skip name entry procedure and choose a random name
+-- instead
+AlwaysRandomName = false
+
+-- Setting this to anything except "" will always use that as the name.
+-- Warning - no error checking, so don't use too long names, or especially
+-- the "@" sign (it's a control char). This setting overrides the one above!
+AlwaysName       = ""
+
 -- Setting to false will prevent DoomRL from waiting for confirmation
 -- when too many messages are printed in a turn. Usefull for Speedrunning.
 MorePrompt       = true

@@ -21,10 +21,6 @@ Graphics = "CONSOLE"
 -- Possible values are FMOD, SDL, NONE, DEFAULT
 SoundEngine = "NONE"
 
--- Setting to true will skip name entry procedure and choose a random name
--- instead
-AlwaysRandomName = false
-
 -- Setting to false will turn off music during gameplay
 GameMusic        = false
 
@@ -148,13 +144,3 @@ LockBreak        = true
 -- Windows only - Disables closing of DoomRL by console close button.
 -- true by default.
 LockClose        = true
-
----------------------
--- User name setting.
--- The actual name will be appended to the file at user registration time.
---------------------------------------------------------------------------
-
--- Setting this to anything except "" will always use that as the name.
--- Warning - no error checking, so don't use too long names, or especially
--- the "@" sign (it's a control char). This setting overrides the one above!
---AlwaysName       = ""

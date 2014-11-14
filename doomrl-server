@@ -139,8 +139,6 @@ class RegisterCommand(Command):
       os.mkdir(pjoin(home, dir))
     with open(pjoin(home, 'passwd'), 'w') as passwd:
       passwd.write(password)
-    with open(pjoin(home, 'config.lua'), 'a') as config:
-      config.write('AlwaysName = "%s"\n' % name)
     # Create empty scores file
     open(pjoin(home, 'archive', 'scores'), 'w').close()
 
