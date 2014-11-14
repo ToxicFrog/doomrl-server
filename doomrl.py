@@ -64,6 +64,8 @@ def raw_scores(user=None):
   difficulties = ['', 'E', 'M', 'H', 'U', 'N!']
   def fixtypes(node):
     node['difficulty'] = difficulties[int(node['difficulty'])]
+    node['charname'] = node['name']
+    node['name'] = user or _user
     for field in ['score', 'depth', 'level']:
       node[field] = int(node[field])
     return node
