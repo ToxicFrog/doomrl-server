@@ -43,11 +43,11 @@ def install_wad(wad):
 def install_mortems(mortems):
   print('importing DoomRL mortem directory and linking with scores')
   scores = doomrl.raw_scores()
-  for (n,file) in enumerate(sorted(os.listdir(mortems))):
+  for (n,file) in enumerate(sorted([file for file in os.listdir(mortems) if file.startswith('[')])):
     shutil.copy(join(mortems, file), doomrl.home('archive', '%d.mortem' % (n+1)))
     mortem = open(join(mortems, file), 'r').read().split('\n')
 
-    angel = None
+    (angel,name,level,klass,points,killed) = (None,None,None,None,None,None)
     for line in mortem:
       match = re.match(r" ([^,]+), level (\d+) .* (Marine|Scout|Technician),", line)
       if match:
@@ -61,17 +61,28 @@ def install_mortems(mortems):
       if match:
         angel = angels[match.group(1)]
         continue
+      match = re.match(r' was .* by (a|an|the) (.*) (on level|at the)', line)
+      if match:
+        killed = match.group(2)
+        continue
+
+    if not name or not points:
+      print('%d: unable to determine character information' % (n+1))
+      continue
 
     candidates = [score for score in scores
                   if score['charname'] == name
                   and score['score'] == int(points)
                   and score['klass'] == klass.lower()
                   and score.get('challenge', None) == angel]
+    if len(candidates) > 1 and killed:
+      candidates = [score for score in candidates if score['killed'] == 'killed by a %s' % killed]
     if len(candidates) == 0:
-      print('%d: no candidate scorelines found' % (n+1), name, points, klass, angel)
+      print('%d: no candidate scorelines found' % (n+1), name, points, klass, killed, angel)
       continue
     elif len(candidates) > 1:
       print('%d: %d candidates, writing duplicate scorelines, please edit and correct' % (n+1, len(candidates)))
+      print(killed, [x['killed'] for x in candidates])
 
     with open(doomrl.home('archive', 'scores'), 'a') as fd:
       for score in candidates:
