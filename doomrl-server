@@ -492,7 +492,7 @@ class ReplayCommand(Command):
 
   def list_replays(self, player):
     """List all recordings for this player."""
-    print('   # | SCORE')
+    print('    # | SCORE')
     replays = self.replays(player)
     replays.sort(key=lambda s: s['n'])
     for replay in replays:
@@ -590,7 +590,7 @@ class MortemCommand(Command):
 
   def list_mortems(self, player):
     """List all mortems for this player."""
-    print('   # | SCORE')
+    print('    # | SCORE')
     mortems = self.mortems(player)
     mortems.sort(key=lambda s: s['n'])
     for mortem in mortems:
