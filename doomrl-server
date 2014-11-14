@@ -16,101 +16,14 @@ from struct import pack,unpack
 from syslog import syslog as log
 from time import time
 
+import doomrl
+
 # DoomRL loads score.wad and player.wad on startup, holds them in memory for its
 # entire run, and writes them out on exit.
 # Score.wad is a gzipped XML file containing the scores. It starts with a CRC,
 # and if this CRC is incorrect, will attempt to restore score.wad from backup
 # or, failing that, erase it and start over. So merging score.wad is a no-go
 # unless we can reverse engineer the CRC. It looks the right size to be md5.
-
-class DoomRL(object):
-  """Global state for the DoomRL server."""
-  # Set up paths
-  root = os.getenv('DOOMRL_SERVER') or os.path.dirname(os.path.realpath(__file__))
-  config = pjoin(root, 'config')
-  doomrl = pjoin(root, 'doomrl')
-  playing = pjoin(root, 'games')
-  players = pjoin(root, 'players')
-  www = pjoin(root, 'www')
-  # Global state
-  user = 'guest'
-  home = None
-
-  @classmethod
-  def name_valid(cls, name):
-    """Check if a player or game name is legal."""
-    return 0 < len(name) <= 24 and bytes(name, encoding='utf8').isalnum()
-
-  @classmethod
-  def homedir(cls, *args):
-    return pjoin(cls.home, *args)
-
-  @classmethod
-  def player(cls, *args):
-    """Get the directory for a given player."""
-    return pjoin(cls.players, *args)
-
-  @classmethod
-  def player_exists(cls, player):
-    """Check if a player exists."""
-    return os.path.isdir(cls.player(player))
-
-  @classmethod
-  def game(cls, *args):
-    """Get a game-in-progress replay file."""
-    return pjoin(cls.playing, *args)
-
-  @classmethod
-  def all_players(cls):
-    """A list of all players."""
-    return sorted([
-      p for p in os.listdir(cls.players)
-      if isdir(cls.player(p)) and not p.startswith('.')])
-
-  @classmethod
-  def mortems(cls, player):
-    """A list of all mortems for a given player."""
-    return sorted(os.listdir(cls.player(player, 'mortem')))
-
-  @classmethod
-  def scores(cls, player):
-    """The contents of a player's score.wad."""
-    difficulties = ['', 'E', 'M', 'H', 'U', 'N!']
-    def fixtypes(node):
-      node['difficulty'] = difficulties[int(node['difficulty'])]
-      for field in ['score', 'depth', 'level']:
-        node[field] = int(node[field])
-      return node
-
-    import gzip
-    import xml.etree.ElementTree as etree
-    try:
-      with gzip.open(cls.player(player, 'score.wad')) as fd:
-        xml = etree.parse(fd)
-      return [fixtypes(entry.attrib) for entry in xml.getroot().findall('entry')]
-    except FileNotFoundError:
-      return []
-
-  @classmethod
-  def games(cls, player):
-    """All of a player's completed games that we know of."""
-    with open(cls.player(player, 'archive', 'scores')) as fd:
-      return [json.loads(line) for line in fd]
-
-  @classmethod
-  def scoreline(cls, game):
-    return ' %4d | %2s %7d %-24s %sL:%-2d %-34s DL%-2d %s' % (
-      game['n'],
-      game['difficulty'],
-      game['score'],
-      game['name'],
-      game['klass'][0].upper(),
-      game['level'],
-      game['killed'],
-      game['depth'],
-      game.get('challenge', ''))
-
-
 
 class TTYRec(object):
   """A wrapper for a binary file holding a DoomRL TTYRec."""
@@ -206,20 +119,22 @@ class RegisterCommand(Command):
     # and their own personal config files (so that they can be edited). We also
     # customize config.lua with the player's name.
     for file in ['core.wad', 'doomrl', 'doomrl.wad']:
-      os.symlink(pjoin(DoomRL.doomrl, file), pjoin(home, file))
-    for file in os.listdir(DoomRL.config):
-      shutil.copy(pjoin(DoomRL.config, file), pjoin(home, file))
+      os.symlink(doomrl.path('doomrl', file), doomrl.home(file, user=name))
+    for file in os.listdir(doomrl.path('config')):
+      shutil.copy(doomrl.path('config', file), doomrl.home(file, user=name))
     for dir in ['backup', 'mortem', 'screenshot', 'saves', 'archive']:
       os.mkdir(pjoin(home, dir))
     with open(pjoin(home, 'passwd'), 'w') as passwd:
       passwd.write(password)
     with open(pjoin(home, 'config.lua'), 'a') as config:
       config.write('AlwaysName = "%s"\n' % name)
+    # Create empty scores file
+    open(pjoin(home, 'archive', 'scores'), 'w').close()
 
 
   def run(self, name, password):
     # Check name validity
-    if not DoomRL.name_valid(name):
+    if not doomrl.name_valid(name):
       return 'Invalid name.'
 
     # Check that password was specified
@@ -227,8 +142,7 @@ class RegisterCommand(Command):
       return 'No password specified.'
 
     # Try to create user directory and die if we can't
-    DoomRL.user = name
-    home = DoomRL.player(name)
+    home = doomrl.home(user=name)
     try:
       os.mkdir(home)
     except OSError as e:
@@ -243,14 +157,15 @@ class RegisterCommand(Command):
       log('Error creating account %s: %s' % (name, e))
       print('Error creating user directory.')
       print('Report this to the server administrator.')
+      if doomrl.debug():
+        raise e
       try:
         shutil.rmtree(home)
       except OSError as e:
         log('Error cleaning up account %s: %s' % (name, e))
         print('Error cleaning up the half-created user directory! This username is unavailable until the admin fixes things.')
       finally:
-        DoomRL.user = "guest"
-        DoomRL.home = None
+        doomrl.login()
         return 'Unable to create user.'
 
     # Login
@@ -276,7 +191,7 @@ class ConfigCommand(Command):
   nargs = 2
 
   def run(self, file, reset):
-    if not DoomRL.home:
+    if not doomrl.user():
       return 'You must be logged in.'
 
     if reset and reset != 'reset':
@@ -286,10 +201,10 @@ class ConfigCommand(Command):
 
     if reset and file == "all":
       print("Restoring default configuration files.")
-      for file in os.listdir(DoomRL.config):
-        shutil.copy(pjoin(DoomRL.config, file), DoomRL.homedir(file))
-      with open(DoomRL.homedir('config.lua'), 'a') as config:
-        config.write('AlwaysName = "%s"\n' % DoomRL.user)
+      for file in os.listdir(doomrl.path('config')):
+        shutil.copy(doomrl.path('config', file), doomrl.home(file))
+      with open(doomrl.home('config.lua'), 'a') as config:
+        config.write('AlwaysName = "%s"\n' % doomrl.user())
       return
 
     if not file:
@@ -301,12 +216,12 @@ class ConfigCommand(Command):
 
     if reset:
       print('Restoring %s.lua to defaults.')
-      shutil.copy(pjoin(DoomRL.config, file + '.lua'), DoomRL.home)
+      shutil.copy(doomrl.path('config', '%s.lua' % file), doomrl.home())
       return
 
     # Use Nano in secure mode to edit the file.
     subprocess.call(
-      ['nano', '-R', DoomRL.homedir(file + '.lua')])
+      ['nano', '-R', doomrl.home('%s.lua' % file)])
 
 class LoginCommand(Command):
   """login <name> <pass> -- log in to an existing account.
@@ -317,28 +232,25 @@ class LoginCommand(Command):
   nargs = 2
 
   def run(self, name, password):
-    if DoomRL.home:
+    if doomrl.user():
       return 'You are already logged in!'
 
     if not name or not password:
       return 'You must specify both a username and a password.'
 
     # Check password
-    home = os.path.join(DoomRL.players, name)
     try:
-      with open(os.path.join(home, 'passwd')) as f:
+      with open(doomrl.home('passwd', user=name)) as f:
         passwd = f.read()
       if passwd == password:
         log('%s successfully logged in.' % name)
-        DoomRL.home = home
-        DoomRL.user = name
+        doomrl.login(name)
         return
     except IOError as e:
       pass
 
     log('Failed login attempt as %s' % name)
-    DoomRL.home = None
-    DoomRL.user = "guest"
+    doomrl.login()
     return 'Login failed.'
 
 class HelpCommand(Command):
@@ -384,13 +296,13 @@ class PlayCommand(Command):
     if exists(self.recfile + '.' + name):
       os.rename(self.recfile + '.' + name, self.recfile)
       print('Recording of current game restored.')
-    if exists(DoomRL.homedir('saves', name)):
-      os.rename(DoomRL.homedir('saves', name), DoomRL.homedir('save'))
+    if exists(doomrl.home('saves', name)):
+      os.rename(doomrl.home('saves', name), doomrl.home('save'))
 
     # Get their pre-game high scores so we can check for new ones afterwards.
-    scores_before = DoomRL.scores(DoomRL.user)
+    scores_before = doomrl.raw_scores()
     try:
-      mortem_before = DoomRL.mortems(DoomRL.user)[-1]
+      mortem_before = doomrl.raw_mortems()[-1]
     except IndexError:
       mortem_before = None
 
@@ -403,7 +315,7 @@ class PlayCommand(Command):
     ttyrec = subprocess.Popen(
       ['ttyrec', '-e', './doomrl', '-a', '/dev/fd/%d' % wpipe],
       pass_fds=(0,1,2,wpipe),
-      cwd=DoomRL.home)
+      cwd=doomrl.home())
     os.close(wpipe)
 
     # Now we read from the pipe and process the output until it's closed,
@@ -420,12 +332,12 @@ class PlayCommand(Command):
     os.close(rpipe)
 
   def run(self, name):
-    if not DoomRL.home:
+    if not doomrl.user():
       return 'You must log in first.'
 
     if not name:
       # List games in progress
-      saves = os.listdir(DoomRL.homedir('saves'))
+      saves = os.listdir(doomrl.home('saves'))
       if not saves:
         print('You have no games in progress.')
       else:
@@ -437,11 +349,11 @@ class PlayCommand(Command):
 
     # We can be a bit looser about names here, but for simplicity's sake we
     # just reuse the name validation code we use for player names.
-    if not DoomRL.name_valid(name):
+    if not doomrl.name_valid(name):
       return 'Invalid save name.'
 
     # Check that they aren't already playing *right now*.
-    self.recfile = DoomRL.game(DoomRL.user)
+    self.recfile = doomrl.path('games', doomrl.user())
     if exists(self.recfile):
       return 'You are already playing in another window! Quit that game first.'
 
@@ -460,14 +372,14 @@ class PlayCommand(Command):
 
   def shutdown(self, name, scores_before, mortem_before):
     # If the game is still in progress, save the ttyrec file.
-    if exists(DoomRL.player(DoomRL.user, 'save')):
+    if exists(doomrl.home('save')):
       os.rename(self.recfile, self.recfile + '.' + name)
-      os.rename(DoomRL.homedir('save'), DoomRL.homedir('saves', name))
+      os.rename(doomrl.home('save'), doomrl.home('saves', name))
     else:
       # Otherwise, there *should* be a new high score entry and a new mortem.
       # Unless they simply didn't start a game in the first place.
       try:
-        mortem = DoomRL.mortems(DoomRL.user)[-1]
+        mortem = doomrl.raw_mortems()[-1]
       except IndexError:
         mortem = None
 
@@ -477,20 +389,20 @@ class PlayCommand(Command):
         return
 
       # Write the new score entry to the player's scores file.
-      scores_after = DoomRL.scores(DoomRL.user)
+      scores_after = doomrl.raw_scores()
       n = len(scores_after)
       for (i,score) in enumerate(scores_after):
         if i >= len(scores_before) or scores_before[i] != score:
-          with open(DoomRL.homedir('archive', 'scores'), "a") as fd:
+          with open(doomrl.home('archive', 'scores'), "a") as fd:
             score['n'] = n
             fd.write(json.dumps(score) + '\n')
             break
 
       # Save the ttyrec and mortem files to the player archive directory.
       os.rename(self.recfile,
-                DoomRL.homedir('archive', '%d.ttyrec' % n))
-      shutil.copy(DoomRL.homedir('mortem', mortem),
-                  DoomRL.homedir('archive', '%d.mortem' % n))
+                doomrl.home('archive', '%d.ttyrec' % n))
+      shutil.copy(doomrl.home('mortem', mortem),
+                  doomrl.home('archive', '%d.mortem' % n))
 
 class WatchCommand(Command):
   """watch <player> -- watch an in-progress game of DoomRL.
@@ -513,23 +425,23 @@ class WatchCommand(Command):
     if not player:
       # list active games
       print('SECONDS PLAYER')
-      for player in DoomRL.all_players():
-        if exists(DoomRL.game(player)):
-          subprocess.call(['ttytime', player], cwd=DoomRL.playing)
+      for player in doomrl.all_users():
+        if exists(doomrl.path('games', player)):
+          subprocess.call(['ttytime', player], cwd=doomrl.path('games'))
       return
 
-    if not exists(DoomRL.game(player)):
+    if not exists(doomrl.path('games', player)):
       return 'No game in progress under that name.'
 
     try:
       # First we 'catch up' by playing the game so far at 16x speed.
       subprocess.call(
         ['ttyplay', '-s', '16', player],
-        cwd=DoomRL.playing)
+        cwd=doomrl.path('games'))
       # Then we peek at what remains.
       subprocess.call(
         ['ttyplay', '-p', player],
-        cwd=DoomRL.playing)
+        cwd=doomrl.path('games'))
     except KeyboardInterrupt:
       pass
     finally:
@@ -556,13 +468,13 @@ class ReplayCommand(Command):
   nargs = 2
 
   def replays(self, player):
-    return [game for game in DoomRL.games(player)
-            if exists(DoomRL.player(game['name'], 'archive', '%d.ttyrec' % game['n']))]
+    return [game for game in doomrl.games(player)
+            if exists(doomrl.home('archive', '%d.ttyrec' % game['n'], user=player))]
 
   def list_players(self):
     """List all players with recordings, and how many."""
     print('  NUM | PLAYER')
-    for player in DoomRL.all_players():
+    for player in doomrl.all_users():
       replays = len(self.replays(player))
       if replays > 0:
         print(' %4d | %s' % (replays, player))
@@ -573,12 +485,12 @@ class ReplayCommand(Command):
     replays = self.replays(player)
     replays.sort(key=lambda s: s['n'])
     for replay in replays:
-      print(DoomRL.scoreline(replay))
+      print(doomrl.scoreline(replay))
 
   def run(self, player, id):
     if not player:
       return self.list_players()
-    elif not DoomRL.player_exists(player):
+    elif not doomrl.user_exists(player):
       return 'No such player: %s' % player
     elif not id:
       return self.list_replays(player)
@@ -593,14 +505,14 @@ class ReplayCommand(Command):
       except:
         return 'Invalid replay ID.'
 
-    replay = DoomRL.player(player, 'archive', '%d.ttyrec' % id)
+    replay = doomrl.home('archive', '%d.ttyrec' % id, user=player)
     if not exists(replay):
       return 'No replay with that ID found for that player.'
 
     try:
       subprocess.call(
         ['ttyplay', replay],
-        cwd=DoomRL.player(player, 'archive'))
+        cwd=doomrl.home('archive', user=player))
     except KeyboardInterrupt:
       pass
     finally:
@@ -622,10 +534,10 @@ class ScoresCommand(Command):
   def run(self, player):
     if not player:
       games = []
-      for player in DoomRL.all_players():
-        games += DoomRL.games(player)
+      for player in doomrl.all_users():
+        games += doomrl.games(player)
     else:
-      games = DoomRL.games(player)
+      games = doomrl.games(player)
 
     games.sort(reverse=True, key=lambda s: int(s['score']))
 
@@ -635,7 +547,7 @@ class ScoresCommand(Command):
       env={'LESSSECURE': '1', 'TERM': os.getenv('TERM')},
       stdin=subprocess.PIPE)
     for game in games:
-      less.stdin.write(DoomRL.scoreline(game) + '\n')
+      less.stdin.write(doomrl.scoreline(game) + '\n')
     less.stdin.close()
     less.wait()
 
@@ -654,13 +566,13 @@ class MortemCommand(Command):
   nargs = 2
 
   def mortems(self, player):
-    return [game for game in DoomRL.games(player)
-            if exists(DoomRL.player(game['name'], 'archive', '%d.mortem' % game['n']))]
+    return [game for game in doomrl.games(player)
+            if exists(doomrl.home('archive', '%d.mortem' % game['n'], user=player))]
 
   def list_players(self):
     """List all players with mortems, and how many."""
     print('  NUM | PLAYER')
-    for player in DoomRL.all_players():
+    for player in doomrl.all_users():
       mortems = len(self.mortems(player))
       if mortems > 0:
         print(' %4d | %s' % (mortems, player))
@@ -671,12 +583,12 @@ class MortemCommand(Command):
     mortems = self.mortems(player)
     mortems.sort(key=lambda s: s['n'])
     for mortem in mortems:
-      print(DoomRL.scoreline(mortem))
+      print(doomrl.scoreline(mortem))
 
   def run(self, player, id):
     if not player:
       return self.list_players()
-    elif not DoomRL.player_exists(player):
+    elif not doomrl.user_exists(player):
       return 'No such player: %s' % player
     elif not id:
       return self.list_mortems(player)
@@ -690,14 +602,14 @@ class MortemCommand(Command):
       except:
         return 'Invalid mortem ID.'
 
-    mortem = DoomRL.player(player, 'archive', '%d.mortem' % id)
+    mortem = doomrl.home('archive', '%d.mortem' % id, user=player)
     if not exists(mortem):
       return 'No mortem with that ID found for that player.'
 
     try:
       subprocess.call(
         ['less', '-d', '-M', mortem],
-        cwd=DoomRL.player(player, 'archive'),
+        cwd=doomrl.home('archive', user=player),
         env={
           'LESSSECURE': '1',
           'TERM': os.getenv('TERM')
@@ -773,7 +685,7 @@ Type 'help' for a list of commands.""")
 
   while True:
     try:
-      [cmd, args] = argsplit(input('\n%s> ' % DoomRL.user).strip())
+      [cmd, args] = argsplit(input('\n%s> ' % (doomrl.user() or 'guest')).strip())
       if cmd in commands:
         result = commands[cmd].run(*argsplit(args, max=commands[cmd].nargs))
         if result:
@@ -791,11 +703,11 @@ Type 'help' for a list of commands.""")
     except Exception as e:
       log('Unhandled exception in mainloop: %s' % str(e))
       print('Error in mainloop: %s' % str(e))
-      if DoomRL.home and exists(DoomRL.homedir('debug')):
+      if doomrl.debug():
         raise e
 
-  if DoomRL.home:
-    log('User %s logged out.' % DoomRL.user)
+  if doomrl.user():
+    log('User %s logged out.' % doomrl.user())
   print('Goodbye!')
 
 if __name__ == '__main__':
