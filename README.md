@@ -49,7 +49,15 @@ Unpack a DoomRL installation to this directory. In combination with the config d
 
     players/*/
 
-Each one of these is a player-specific DoomRL directory. Most of the contents are symlinks to files in the root doomrl directory. The exceptions are files generated or edited by DoomRL as it runs -- player.wad and score.wad, the backup/, mortem/, and screenshot/ directories, the save file, and log files. There is also a recording/ directory used by DoomRL to store completed game recordings, and a saves/ directory that stores games in progress (since DoomRL-server permits multiple concurrent games with different names).
+Each one of these is a player-specific DoomRL directory. Most of the contents are symlinks to files in the root doomrl directory, or (for files that DoomRL writes, or that the player can customize) copies of same.
+
+    players/*/saves/
+
+Games in progress, each one named for that game.
+
+    players/*/archive/
+
+Archived mortem and ttyrec files and the server scores file for that player.
 
     games/
 
@@ -60,6 +68,8 @@ This holds information about games in progress. For each game there's a ttyrec f
 Generation of a static web interface for high score lists and mortem/ttyrec files in `www/`.
 
 `wins` command to list winning games only.
+
+Archive ttyrecs compressed and decompress on demand.
 
 Display scoreline as well as datestamp when listing available mortems and replays.
 

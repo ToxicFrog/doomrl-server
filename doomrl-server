@@ -26,7 +26,20 @@ import doomrl
 # unless we can reverse engineer the CRC. It looks the right size to be md5.
 
 class TTYRec(object):
-  """A wrapper for a binary file holding a DoomRL TTYRec."""
+  """A wrapper for a binary file holding a DoomRL TTYRec.
+
+  This class needs a bit of explanation. See, DoomRL's tty handling code is kind
+  of buggy and constantly spams no-op commands even when nothing is happening.
+  This has two unfortunate consequences: the ttyrec files are huge, and ttyplay
+  can't skip large sections of inactivity (because everything looks like
+  activity all the time).
+
+  This class does two things. First, it automatically drops frames which
+  consist only of these no-op commands (in a kind of hackish way, but it works).
+  Second, it adjusts the frame timing to trim out large periods of inactivity
+  (which may range from seconds to -- if a game was resumed from save after a
+  long period of inactivity -- weeks or more).
+  """
   def __init__(self, path):
     self.last_sgr = None
     self.last_pos = None
