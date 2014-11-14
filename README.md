@@ -63,6 +63,14 @@ Archived mortem and ttyrec files and the server scores file for that player.
 
 This holds information about games in progress. For each game there's a ttyrec file named for the player. If the player has a game in progress but is not currently playing, the file has a `.<name>` suffix, where `name` is the name given to that game by the player.
 
+## Importing scores from offline
+
+DoomRL-server doesn't read the score.wad file directly; rather, after each game, it extracts the scoreline for that game, adds some additional info to it, and stores in in `players/$PLAYER/archive/scores`. Similarly, postmortems are renamed to make them easier for the server to find. Thus, importing a player is a bit more complicated than just copying the files into place; to automate this, the `import-player` script is available.
+
+To use it, register the player, and then, *from the root of your doomrl-server install*, run `import-player <name> <player.wad> <score.wad> <mortem/>`. The `player.wad` file is the only mandatory part, and contains user progression, unlock and achievement information. `score.wad` contains the player's high score list. `mortem/` can only be imported if `score.wad` is as well, and will attempt to import all of the mortem files and match them up with high score list entries.
+
+In the latter case, it may not always be able to narrow it down to a single high score entry. In that case, you will get a `writing duplicate scorelines, please edit and correct` message. Open the `players/<name>/archive/scores` file, find the duplicate entries, and read the corresponding mortem files to figure out which is the correct one (if possible) and delete the rest.
+
 ## Future Work
 
 Generation of a static web interface for high score lists and mortem/ttyrec files in `www/`.
@@ -70,8 +78,6 @@ Generation of a static web interface for high score lists and mortem/ttyrec file
 `wins` command to list winning games only.
 
 Archive ttyrecs compressed and decompress on demand.
-
-Display scoreline as well as datestamp when listing available mortems and replays.
 
 ## License
 
