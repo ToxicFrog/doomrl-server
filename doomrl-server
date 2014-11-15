@@ -635,20 +635,20 @@ def sighup(sig, frame):
   # in the opposite order, so if we get interrupted halfway through login it's
   # safe). In that case we should remove the half-constructed player profile
   # so that the name can be re-used.
-  if DoomRL.user != 'guest' and not DoomRL.home:
-    shutil.rmtree(DoomRL.player(DoomRL.user), ignore_errors=True)
-    return
+  # if DoomRL.user != 'guest' and not DoomRL.home:
+  #   shutil.rmtree(DoomRL.player(DoomRL.user), ignore_errors=True)
+  #   return
 
-  if DoomRL.home and DoomRL.user:
+  if doomrl.user():
     # If we got interrupted while the player was actually in DoomRL, there's a
     # ttyrec file. It's possible they did something super cool before everything
     # went sideways, so we should save it.
     try:
       when = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
-      what = '[%s] %s.ttyrec' % (when, DoomRL.user)
+      what = 'recovered %s.ttyrec' % when
       os.rename(
-        DoomRL.game(DoomRL.user),
-        DoomRL.homedir('recording', what))
+        doomrl.path('game', doomrl.user()),
+        doomrl.home('archive', what)
     except FileNotFoundError:
       pass
 

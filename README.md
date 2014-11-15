@@ -79,6 +79,8 @@ Generation of a static web interface for high score lists and mortem/ttyrec file
 
 Archive ttyrecs compressed and decompress on demand.
 
+Let players upload and download their score.wad/player.wad/mortem files without admin intervention.
+
 ## License
 
 Copyright © 2014 Ben "ToxicFrog" Kelly
