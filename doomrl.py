@@ -7,6 +7,7 @@ import re
 import subprocess
 import xml.etree.ElementTree as etree
 
+from datetime import timedelta
 from os.path import join,isdir,exists
 
 # Set up paths
@@ -111,9 +112,10 @@ def parse_mortem(n, user=None):
     if match:
       mortem['score'] = int(match.group(1))
       continue
-    match = re.match(r' He played for (\d+) seconds\.', line)
+    match = re.match(r' He played for (?:(\d+) hours?, )?(?:(\d+) minutes? and )?(\d+) seconds?\.', line)
     if match:
-      mortem['time'] = int(match.group(1))
+      (h,m,s) = match.groups()
+      mortem['time'] = (int(h or 0) * 60 + int(m or 0)) * 60 + int(s or 0)
       continue
     match = re.match(r' He was an Angel of (.*)!', line)
     if match:
@@ -133,9 +135,10 @@ def games(user=None):
 
 def scoreline(game):
   winner = game['killed'] == 'nuked the Mastermind' or game['killed'] == 'defeated the Mastermind'
-  return '%s %4d | %2s %7d %-24s %sL:%-2d %-34s DL%-2d %s%s' % (
+  return '%s %4d | %7s %2s %7d %-24s %sL:%-2d %-34s DL%-2d %s%s' % (
     winner and '\x1B[1m' or '',
     game['n'],
+    str(timedelta(seconds=game['time'])),
     game['difficulty'],
     game['score'],
     game['name'],
