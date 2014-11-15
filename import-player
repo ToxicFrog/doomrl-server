@@ -10,24 +10,6 @@ from os.path import join
 
 import doomrl
 
-angels = {
-  'Berserk': 'AoB',
-  'Marksmanship': 'AoMr',
-  'Shotgunnery': 'AoSh',
-  'Light Travel': 'AoLT',
-  'Impatience': 'AoI',
-  'Confidence': 'AoCn',
-  'Purity': 'AoP',
-  'Red Alert': 'AoRA',
-  'Darkness': 'AoD',
-  'Max Carnage': 'AoMC',
-  'Masochism': 'AoMs',
-  '100': 'A100',
-  'Pacifism': 'AoPc',
-  'Humanity': 'AoHu',
-  'Overconfidence': 'AoOC',
-}
-
 def install_wad(wad):
   shutil.copy(wad, doomrl.home())
 
@@ -45,44 +27,25 @@ def install_mortems(mortems):
   scores = doomrl.raw_scores()
   for (n,file) in enumerate(sorted([file for file in os.listdir(mortems) if file.startswith('[')])):
     shutil.copy(join(mortems, file), doomrl.home('archive', '%d.mortem' % (n+1)))
-    mortem = open(join(mortems, file), 'r').read().split('\n')
+    mortem = doomrl.parse_mortem(n+1)
 
-    (angel,name,level,klass,points,killed) = (None,None,None,None,None,None)
-    for line in mortem:
-      match = re.match(r" ([^,]+), level (\d+) .* (Marine|Scout|Technician),", line)
-      if match:
-        (name, level, klass) = match.groups()
-        continue
-      match = re.match(r' He survived \d+ turns and scored (\d+) points\.', line)
-      if match:
-        points = int(match.group(1))
-        continue
-      match = re.match(r' He was an Angel of (.*)!', line)
-      if match:
-        angel = angels[match.group(1)]
-        continue
-      match = re.match(r' was .* by (a|an|the) (.*) (on level|at the)', line)
-      if match:
-        killed = match.group(2)
-        continue
-
-    if not name or not points:
+    if not mortem['name'] or not mortem['score']:
       print('%d: unable to determine character information' % (n+1))
       continue
 
     candidates = [score for score in scores
-                  if score['charname'] == name
-                  and score['score'] == int(points)
-                  and score['klass'] == klass.lower()
-                  and score.get('challenge', None) == angel]
-    if len(candidates) > 1 and killed:
-      candidates = [score for score in candidates if score['killed'] == 'killed by a %s' % killed]
+                  if score['charname'] == mortem['name']
+                  and score['score'] == mortem['score']
+                  and score['klass'] == mortem['klass'].lower()
+                  and score.get('challenge', None) == mortem.get('challenge', None)]
+    if len(candidates) > 1 and mortem.get('killed'):
+      candidates = [score for score in candidates if score['killed'] == 'killed by a %s' % mortem['killed']]
     if len(candidates) == 0:
-      print('%d: no candidate scorelines found' % (n+1), name, points, klass, killed, angel)
+      print('%d: no candidate scorelines found' % (n+1))
       continue
     elif len(candidates) > 1:
       print('%d: %d candidates, writing duplicate scorelines, please edit and correct' % (n+1, len(candidates)))
-      print(killed, [x['killed'] for x in candidates])
+      print(mortem.get('killed'), [x['killed'] for x in candidates])
 
     with open(doomrl.home('archive', 'scores'), 'a') as fd:
       for score in candidates:

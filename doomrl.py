@@ -3,6 +3,7 @@
 import gzip
 import json
 import os
+import re
 import subprocess
 import xml.etree.ElementTree as etree
 
@@ -77,6 +78,52 @@ def raw_scores(user=None):
     return [fixtypes(entry.attrib) for entry in xml.getroot().findall('entry')]
   except FileNotFoundError:
     return []
+
+
+angels = {
+  'Berserk': 'AoB',
+  'Marksmanship': 'AoMr',
+  'Shotgunnery': 'AoSh',
+  'Light Travel': 'AoLT',
+  'Impatience': 'AoI',
+  'Confidence': 'AoCn',
+  'Purity': 'AoP',
+  'Red Alert': 'AoRA',
+  'Darkness': 'AoD',
+  'Max Carnage': 'AoMC',
+  'Masochism': 'AoMs',
+  '100': 'A100',
+  'Pacifism': 'AoPc',
+  'Humanity': 'AoHu',
+  'Overconfidence': 'AoOC',
+}
+
+def parse_mortem(n, user=None):
+  data = open(home('archive', '%d.mortem' % n, user=user), 'r').read().split('\n')
+  mortem = {}
+
+  for line in data:
+    match = re.match(r" ([^,]+), level (\d+) .* (Marine|Scout|Technician),", line)
+    if match:
+      (mortem['name'], mortem['level'], mortem['klass']) = match.groups()
+      continue
+    match = re.match(r' He survived \d+ turns and scored (\d+) points\.', line)
+    if match:
+      mortem['score'] = int(match.group(1))
+      continue
+    match = re.match(r' He played for (\d+) seconds\.', line)
+    if match:
+      mortem['time'] = int(match.group(1))
+      continue
+    match = re.match(r' He was an Angel of (.*)!', line)
+    if match:
+      mortem['challenge'] = angels[match.group(1)]
+      continue
+    match = re.match(r' was .* by (a|an|the) (.*) (on level|at the)', line)
+    if match:
+      mortem['killed'] = match.group(2)
+      continue
+  return mortem
 
 def games(user=None):
   """All of a player's completed games that we know of."""
