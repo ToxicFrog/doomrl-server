@@ -399,21 +399,25 @@ class PlayCommand(Command):
         os.remove(self.recfile)
         return
 
-      # Write the new score entry to the player's scores file.
       scores_after = doomrl.raw_scores()
       n = len(scores_after)
-      for (i,score) in enumerate(scores_after):
-        if i >= len(scores_before) or scores_before[i] != score:
-          with open(doomrl.home('archive', 'scores'), "a") as fd:
-            score['n'] = n
-            fd.write(json.dumps(score) + '\n')
-            break
 
       # Save the ttyrec and mortem files to the player archive directory.
       os.rename(self.recfile,
                 doomrl.home('archive', '%d.ttyrec' % n))
       shutil.copy(doomrl.home('mortem', mortem),
                   doomrl.home('archive', '%d.mortem' % n))
+
+      # Write the new score entry to the player's scores file.
+      mortem = doomrl.parse_mortem(n)
+      for (i,score) in enumerate(scores_after):
+        if i >= len(scores_before) or scores_before[i] != score:
+          with open(doomrl.home('archive', 'scores'), "a") as fd:
+            score['n'] = n
+            score['time'] = mortem['time']
+            fd.write(json.dumps(score) + '\n')
+            break
+
 
 class WatchCommand(Command):
   """watch <player> -- watch an in-progress game of DoomRL.
