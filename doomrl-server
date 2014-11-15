@@ -445,9 +445,9 @@ class WatchCommand(Command):
       return 'No game in progress under that name.'
 
     try:
-      # First we 'catch up' by playing the game so far at 16x speed.
+      # First we 'catch up' by playing the replay so far at max speed.
       subprocess.call(
-        ['ttyplay', '-s', '16', player],
+        ['ttyplay', '-n', player],
         cwd=doomrl.path('games'))
       # Then we peek at what remains.
       subprocess.call(
