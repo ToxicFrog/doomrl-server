@@ -16,7 +16,7 @@ _user = None
 _home = None
 
 def debug():
-  return True or _user and exists(home('debug'))
+  return _user and exists(home('debug'))
 
 # Path manipulation
 def path(*args):
