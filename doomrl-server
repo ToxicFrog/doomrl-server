@@ -92,8 +92,8 @@ class TTYRec(object):
         self.delta = s - self.last_s - 1
       s -= self.delta
       self.last_s = s
-      self.fd.write(pack("III", s, us, sz))
-      self.fd.write(data)
+      self.fd.write(pack("III", s, us, sz) + data)
+      self.fd.flush()
 
 
 commands = {}
