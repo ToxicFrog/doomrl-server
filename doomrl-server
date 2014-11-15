@@ -490,21 +490,13 @@ class ReplayCommand(Command):
       if replays > 0:
         print(' %4d | %s' % (replays, player))
 
-  def list_replays(self, player):
-    """List all recordings for this player."""
-    print('    # | SCORE')
-    replays = self.replays(player)
-    replays.sort(key=lambda s: s['n'])
-    for replay in replays:
-      print(doomrl.scoreline(replay))
-
   def run(self, player, id):
     if not player:
       return self.list_players()
     elif not doomrl.user_exists(player):
       return 'No such player: %s' % player
     elif not id:
-      return self.list_replays(player)
+      return doomrl.show_scores(self.replays(player))
 
     # Replay the named recording.
     replays = self.replays(player)
@@ -551,16 +543,7 @@ class ScoresCommand(Command):
       games = doomrl.games(player)
 
     games.sort(reverse=True, key=lambda s: int(s['score']))
-
-    less = subprocess.Popen(
-      ['less'],
-      universal_newlines=True,
-      env={'LESSSECURE': '1', 'TERM': os.getenv('TERM')},
-      stdin=subprocess.PIPE)
-    for game in games:
-      less.stdin.write(doomrl.scoreline(game) + '\n')
-    less.stdin.close()
-    less.wait()
+    doomrl.show_scores(games)
 
 class MortemCommand(Command):
   """mortem <player> <number> -- view a postmortem
@@ -588,21 +571,13 @@ class MortemCommand(Command):
       if mortems > 0:
         print(' %4d | %s' % (mortems, player))
 
-  def list_mortems(self, player):
-    """List all mortems for this player."""
-    print('    # | SCORE')
-    mortems = self.mortems(player)
-    mortems.sort(key=lambda s: s['n'])
-    for mortem in mortems:
-      print(doomrl.scoreline(mortem))
-
   def run(self, player, id):
     if not player:
       return self.list_players()
     elif not doomrl.user_exists(player):
       return 'No such player: %s' % player
     elif not id:
-      return self.list_mortems(player)
+      return doomrl.show_scores(self.mortems(player))
 
     mortems = self.mortems(player)
     if id == "latest":
@@ -648,7 +623,7 @@ def sighup(sig, frame):
       what = 'recovered %s.ttyrec' % when
       os.rename(
         doomrl.path('game', doomrl.user()),
-        doomrl.home('archive', what)
+        doomrl.home('archive', what))
     except FileNotFoundError:
       pass
 

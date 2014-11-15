@@ -81,6 +81,10 @@ Archive ttyrecs compressed and decompress on demand.
 
 Let players upload and download their score.wad/player.wad/mortem files without admin intervention.
 
+Show game time when displaying scorelines.
+Show game times as h:mm:ss rather than just total seconds.
+"There are %d other players online" banner?
+
 ## License
 
 Copyright © 2014 Ben "ToxicFrog" Kelly

@@ -3,6 +3,7 @@
 import gzip
 import json
 import os
+import subprocess
 import xml.etree.ElementTree as etree
 
 from os.path import join,isdir,exists
@@ -84,7 +85,9 @@ def games(user=None):
     return [json.loads(line) for line in fd]
 
 def scoreline(game):
-  return ' %4d | %2s %7d %-24s %sL:%-2d %-34s DL%-2d %s' % (
+  winner = game['killed'] == 'nuked the Mastermind' or game['killed'] == 'defeated the Mastermind'
+  return '%s %4d | %2s %7d %-24s %sL:%-2d %-34s DL%-2d %s%s' % (
+    winner and '\x1B[1m' or '',
     game['n'],
     game['difficulty'],
     game['score'],
@@ -93,4 +96,16 @@ def scoreline(game):
     game['level'],
     game['killed'],
     game['depth'],
-    game.get('challenge', ''))
+    game.get('challenge', ''),
+    winner and '\x1B[0m' or '')
+
+def show_scores(scores):
+  less = subprocess.Popen(
+    ['less', '-R'],
+    universal_newlines=True,
+    env={'LESSSECURE': '1', 'TERM': os.getenv('TERM')},
+    stdin=subprocess.PIPE)
+  for score in scores:
+    less.stdin.write(scoreline(score) + '\n')
+  less.stdin.close()
+  less.wait()
