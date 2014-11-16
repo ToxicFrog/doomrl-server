@@ -135,7 +135,7 @@ def games(user=None):
 
 def scoreline(game):
   winner = game['killed'] == 'nuked the Mastermind' or game['killed'] == 'defeated the Mastermind'
-  return '%s %4d | %7s %2s %7d %-24s %sL:%-2d %-34s DL%-2d %s%s' % (
+  return '%s%4d | %7s %-2s%7d %-14s %sL:%-2d %-33s DL%-2d %s%s' % (
     winner and '\x1B[1m' or '',
     game['n'],
     str(timedelta(seconds=game['time'])),
@@ -151,7 +151,7 @@ def scoreline(game):
 
 def show_scores(scores):
   less = subprocess.Popen(
-    ['less', '-R'],
+    ['less', '-R', '-S'],
     universal_newlines=True,
     env={'LESSSECURE': '1', 'TERM': os.getenv('TERM')},
     stdin=subprocess.PIPE)
