@@ -304,8 +304,8 @@ class PlayCommand(Command):
 
   def setup(self, name):
     # If the player has a game in progress, restore their ttyrec and save.
-    if exists(self.recfile + '.' + name):
-      os.rename(self.recfile + '.' + name, self.recfile)
+    if exists(doomrl.home('saves', name + '.ttyrec')):
+      os.rename(doomrl.home('saves', name + '.ttyrec'), self.recfile)
       print('Recording of current game restored.')
     if exists(doomrl.home('saves', name)):
       os.rename(doomrl.home('saves', name), doomrl.home('save'))
@@ -353,7 +353,7 @@ class PlayCommand(Command):
         print('You have no games in progress.')
       else:
         print('Games in progress:')
-        for save in saves:
+        for save in [s for s in saves if not s.endswith('.ttyrec')]:
           print('\t', save)
         print('Type "play <name>" to resume one.')
       return
@@ -384,7 +384,7 @@ class PlayCommand(Command):
   def shutdown(self, name, scores_before, mortem_before):
     # If the game is still in progress, save the ttyrec file.
     if exists(doomrl.home('save')):
-      os.rename(self.recfile, self.recfile + '.' + name)
+      os.rename(self.recfile, doomrl.home('saves', name + '.ttyrec'))
       os.rename(doomrl.home('save'), doomrl.home('saves', name))
     else:
       # Otherwise, there *should* be a new high score entry and a new mortem.
