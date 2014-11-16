@@ -10,6 +10,7 @@ import subprocess
 import sys
 import syslog
 
+from datetime import timedelta
 from os.path import join as pjoin
 from os.path import exists,isdir
 from struct import pack,unpack
@@ -364,7 +365,7 @@ class PlayCommand(Command):
       return 'Invalid save name.'
 
     # Check that they aren't already playing *right now*.
-    self.recfile = doomrl.path('games', doomrl.user())
+    self.recfile = doomrl.home('ttyrec')
     if exists(self.recfile):
       return 'You are already playing in another window! Quit that game first.'
 
@@ -439,24 +440,25 @@ class WatchCommand(Command):
   def run(self, player):
     if not player:
       # list active games
-      print('SECONDS PLAYER')
+      print('   TIME PLAYER')
       for player in doomrl.all_users():
-        if exists(doomrl.path('games', player)):
-          subprocess.call(['ttytime', player], cwd=doomrl.path('games'))
+        if exists(doomrl.home('ttyrec', user=player)):
+          time = subprocess.check_output(['ttytime', 'ttyrec'], cwd=doomrl.home(user=player)).split()[0]
+          print("%7s %s" % (str(timedelta(seconds=int(time))), player))
       return
 
-    if not exists(doomrl.path('games', player)):
+    if not exists(doomrl.home('ttyrec', user=player)):
       return 'No game in progress under that name.'
 
     try:
       # First we 'catch up' by playing the replay so far at max speed.
       subprocess.call(
-        ['ttyplay', '-n', player],
-        cwd=doomrl.path('games'))
+        ['ttyplay', '-n', 'ttyrec'],
+        cwd=doomrl.home(user=player))
       # Then we peek at what remains.
       subprocess.call(
-        ['ttyplay', '-p', player],
-        cwd=doomrl.path('games'))
+        ['ttyplay', '-p', 'ttyrec'],
+        cwd=doomrl.home(user=player))
     except KeyboardInterrupt:
       pass
     finally:
@@ -609,26 +611,16 @@ class MortemCommand(Command):
 
 def sighup(sig, frame):
   """Signal handler for SIGHUP, which is raised when the user disconnects suddenly."""
-  # If we got interrupted halfway through creating the player's profile, then
-  # DoomRL.user will be set and DoomRL.home won't be (a normal login sets them
-  # in the opposite order, so if we get interrupted halfway through login it's
-  # safe). In that case we should remove the half-constructed player profile
-  # so that the name can be re-used.
-  # if DoomRL.user != 'guest' and not DoomRL.home:
-  #   shutil.rmtree(DoomRL.player(DoomRL.user), ignore_errors=True)
-  #   return
+  # TODO: clean up half-created user directories.
 
   if doomrl.user():
     # If we got interrupted while the player was actually in DoomRL, there's a
-    # ttyrec file. It's possible they did something super cool before everything
-    # went sideways, so we should save it.
+    # ttyrec file. We could try recovering it, but DoomRL's crash recovery is
+    # so unreliable that we probably can't match it up to a save file or
+    # scoreline, so we might as well just delete it.
     try:
-      when = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
-      what = 'recovered %s.ttyrec' % when
-      os.rename(
-        doomrl.path('game', doomrl.user()),
-        doomrl.home('archive', what))
-    except FileNotFoundError:
+      os.remove(doomrl.home('ttyrec'))
+    except:
       pass
 
 
