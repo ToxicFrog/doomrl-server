@@ -644,28 +644,8 @@ def main():
 
   syslog.openlog('doomrl-server', facility=syslog.LOG_DAEMON)
 
-  print("""
-=================     ===============     ===============   ========  ========
-\\\\ . . . . . . .\\\\   //. . . . . . .\\\\   //. . . . . . .\\\\  \\\\. . .\\\\// . . //
-||. . ._____. . .|| ||. . ._____. . .|| ||. . ._____. . .|| || . . .\/ . . .||
-|| . .||   ||. . || || . .||   ||. . || || . .||   ||. . || ||. . . . . . . ||
-||. . ||   || . .|| ||. . ||   || . .|| ||. . ||   || . .|| || . | . . . . .||
-|| . .||   ||. _-|| ||-_ .||   ||. . || || . .||   ||. _-|| ||-_.|\ . . . . ||
-||. . ||   ||-'  || ||  `-||   || . .|| ||. . ||   ||-'  || ||  `|\_ . .|. .||
-|| . _||   ||    || ||    ||   ||_ . || || . _||   ||    || ||   |\ `-_/| . ||
-||_-' ||  .|/    || ||    \|.  || `-_|| ||_-' ||  .|/    || ||   | \  / |-_.||
-||    ||_-'      || ||      `-_||    || ||    ||_-'      || ||   | \  / |  `||
-||    `'         || ||         `'    || ||    `'         || ||   | \  / |   ||
-||            .===' `===.         .==='.`===.         .===' /==. |  \/  |   ||
-||         .=='   \_|-_ `===. .==='   _|_   `===. .===' _-|/   `==  \/  |   ||
-||      .=='    _-'    `-_  `='    _-'   `-_    `='  _-'   `-_  /|  \/  |   ||
-||   .=='    _-'          `-__\._-'         `-_./__-'         `' |. /|  |   ||
-||.=='    _-'                                                     `' |  /==.||
-=='    _-'               DoomRL by Kornel Kisielewicz                 \/   `==
-\   _-'                   DoomRL Server by Ben Kelly                   `-_   /
- `''                                                                      ``'
-
-Type 'help' for a list of commands.""")
+  if exists(doomrl.path('motd')):
+    print(open(doomrl.path('motd')).read())
 
   (cols, rows) = shutil.get_terminal_size()
   if int(rows) < 25 or int(cols) < 80:
@@ -675,6 +655,9 @@ Type 'help' for a list of commands.""")
 
   while True:
     try:
+      if exists(doomrl.path('maintenance')):
+        print(open(doomrl.path('maintenance')).read())
+        sys.exit(0)
       [cmd, args] = argsplit(input('\n%s> ' % (doomrl.user() or 'guest')).strip())
       if cmd in commands:
         result = commands[cmd].run(*argsplit(args, max=commands[cmd].nargs))

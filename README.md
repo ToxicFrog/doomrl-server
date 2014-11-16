@@ -63,6 +63,24 @@ Archived mortem and ttyrec files and the server scores file for that player.
 
 This holds information about games in progress. For each game there's a ttyrec file named for the player. If the player has a game in progress but is not currently playing, the file has a `.<name>` suffix, where `name` is the name given to that game by the player.
 
+## Special files
+
+    players/*
+
+If a file exists in the players directory, it will block players of that name from being created. The server comes with a `guest` file.
+
+    motd
+
+The contents if this file, if present in the root directory of the server, will be displayed to each user upon connection. The default contains a DOOM banner.
+
+    maintenance
+
+If this file exists in the root directory of the server, new connections will be shown its contents and then disconnected; existing connections will be treated similarly after their current command completes. Note that the 'current command' may take a very long time to complete, if the user is playing DoomRL or watching a long replay (or has gone AFK); don't expect this to get all users off the server promptly. (To return to normal operation, just delete or rename the file).
+
+    debug
+
+If a file named `debug` exists in a *player's* directory, that player has debug privileges: they will see full stack traces and debug messages from the server. If such a file exists in the *server's* root directory, all players have debug privileges.
+
 ## Importing scores from offline
 
 DoomRL-server doesn't read the score.wad file directly; rather, after each game, it extracts the scoreline for that game, adds some additional info to it, and stores in in `players/$PLAYER/archive/scores`. Similarly, postmortems are renamed to make them easier for the server to find. Thus, importing a player is a bit more complicated than just copying the files into place; to automate this, the `import-player` script is available.
@@ -81,8 +99,6 @@ Archive ttyrecs compressed and decompress on demand.
 
 Let players upload and download their score.wad/player.wad/mortem files without admin intervention.
 
-Show game time when displaying scorelines.
-Show game times as h:mm:ss rather than just total seconds.
 "There are %d other players online" banner?
 
 ## License
