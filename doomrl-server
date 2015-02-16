@@ -27,7 +27,7 @@ import doomrl
 # unless we can reverse engineer the CRC. It looks the right size to be md5.
 
 class TTYRec(object):
-  """A wrapper for a binary file holding a DoomRL TTYRec.
+  """A custom TTYRec recorder for DoomRL.
 
   This class needs a bit of explanation. See, DoomRL's tty handling code is kind
   of buggy and constantly spams no-op commands even when nothing is happening.
@@ -40,12 +40,17 @@ class TTYRec(object):
   Second, it adjusts the frame timing to trim out large periods of inactivity
   (which may range from seconds to -- if a game was resumed from save after a
   long period of inactivity -- weeks or more).
+
+  It completely replaces the use of ttyrec; this class simultaneously filters
+  the output of DoomRL and writes the ttyrec file.
   """
-  def __init__(self, path):
+  def __init__(self, pipe, path, stdout=1):
     self.last_sgr = None
     self.last_pos = None
     self.last_s = int(time())
     self.delta = 0
+    self.doomrl = pipe
+    self.stdout = stdout
 
     # If the file exists, read it to determine our current timestamp
     if exists(path):
@@ -53,6 +58,10 @@ class TTYRec(object):
 
     # Open the file for append
     self.fd = open(path, "ab")
+
+    import tty
+    tty.setraw(stdout)
+    tty.setcbreak(stdout)
 
   def __enter__(self):
     return self
@@ -88,7 +97,10 @@ class TTYRec(object):
     trimmed = re.sub(b'\x1B\\[[\\d;]+m', self.strip_sgr, trimmed)
     trimmed = re.sub(b'\x1B\\[\\?7l', b'', trimmed)
     if trimmed:
-      # if the frame survived, correct timestamp and write it
+      # If the frame survived, write it out.
+      os.write(self.stdout, data)
+      #os.fsync(self.stdout)
+      # Correct the timestamp first, if needed.
       if (s - self.delta) - self.last_s > 2:
         self.delta = s - self.last_s - 1
       s -= self.delta
@@ -96,6 +108,15 @@ class TTYRec(object):
       self.fd.write(pack("III", s, us, sz) + data)
       self.fd.flush()
 
+  def wait(self):
+    # Now we read from the pipe and process the output until it's closed,
+    # stripping out garbage frames and writing the rest to disk.
+    while True:
+      data = os.read(self.doomrl, 8192)
+      time = datetime.datetime.now()
+      if not data:
+        break
+      self.write(time.second, time.microsecond, len(data), data)
 
 commands = {}
 class CommandRegistration(type):
@@ -321,27 +342,17 @@ class PlayCommand(Command):
     return (scores_before,mortem_before)
 
   def run_doomrl(self):
-    # Invoke DoomRL inside ttyrec. Rather than letting ttyrec write directly
-    # to disk, we hand it an FD and then process the contents of that fd.
     (rpipe,wpipe) = os.pipe()
-    ttyrec = subprocess.Popen(
-      ['ttyrec', '-e', './doomrl', '-a', '/dev/fd/%d' % wpipe],
-      pass_fds=(0,1,2,wpipe),
+    child = subprocess.Popen(
+      ['./doomrl'],
+      stdout=wpipe,
       cwd=doomrl.home())
     os.close(wpipe)
 
-    # Now we read from the pipe and process the output until it's closed,
-    # stripping out garbage frames and writing the rest to disk.
-    with TTYRec(self.recfile) as rec:
-      while True:
-        header = os.read(rpipe, 12)
-        if not header:
-          break
-        (s, us, sz) = unpack("III", header)
-        data = os.read(rpipe, sz)
-        rec.write(s, us, sz, data)
-
-    os.close(rpipe)
+    with TTYRec(rpipe, self.recfile) as rec:
+      # This will return when DoomRL closes the fd.
+      rec.wait()
+    child.wait()
 
   def run(self, name):
     if not doomrl.user():
