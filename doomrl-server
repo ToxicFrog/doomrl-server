@@ -113,10 +113,13 @@ class TTYRec(object):
     # stripping out garbage frames and writing the rest to disk.
     while True:
       data = os.read(self.doomrl, 8192)
-      time = datetime.datetime.now()
+      # Split timestamp into seconds and microseconds
+      ts = time()
+      s = int(ts)
+      us = int(ts % 1 * 1e6)
       if not data:
         break
-      self.write(time.second, time.microsecond, len(data), data)
+      self.write(s, us, len(data), data)
 
 commands = {}
 class CommandRegistration(type):
