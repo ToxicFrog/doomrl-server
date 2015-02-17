@@ -388,6 +388,8 @@ class PlayCommand(Command):
       # completely hosed and there may still be processes running in the
       # background. Nothing to do here but die and hope the SIGHUP gets them.
       subprocess.call(['reset'])
+      if doomrl.debug():
+        raise e
       print('Fatal error running DoomRL:', e)
       sys.exit(1)
     finally:
