@@ -112,10 +112,10 @@ def parse_mortem(n, user=None):
     if match:
       mortem['score'] = int(match.group(1))
       continue
-    match = re.match(r' He played for (?:(\d+) hours?, )?(?:(\d+) minutes? and )?(\d+) seconds?\.', line)
+    match = re.match(r' He played for (?:(\d+) day)?.*?(?:(\d+) hour)?.*?(?:(\d+) minute)?.*?(?:(\d+) seconds?)?\.', line)
     if match:
-      (h,m,s) = match.groups()
-      mortem['time'] = (int(h or 0) * 60 + int(m or 0)) * 60 + int(s or 0)
+      (d,h,m,s) = match.groups()
+      mortem['time'] = ((int(d or 0) * 24 + int(h or 0)) * 60 + int(m or 0)) * 60 + int(s or 0)
       continue
     match = re.match(r' He was an Angel of (.*)!', line)
     if match:
