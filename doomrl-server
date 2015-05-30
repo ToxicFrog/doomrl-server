@@ -541,7 +541,7 @@ class ReplayCommand(Command):
     elif not doomrl.user_exists(player):
       return 'No such player: %s' % player
     elif not id:
-      return doomrl.show_scores(self.replays(player))
+      return doomrl.show_scores(self.replays(player), time='ttytime')
 
     # Replay the named recording.
     replays = self.replays(player)
@@ -624,6 +624,41 @@ class MortemCommand(Command):
         })
     except KeyboardInterrupt:
       pass
+
+class RebuildCommand(Command):
+  """rebuild -- regenerate the score and mortem index. Admins only.
+
+  This command rescans the archived postmortems and ttyrecs of each player to
+  correct errors in the master score index. These errors are usually the result
+  of bugs in an earlier version of doomrl-server.
+
+  At the moment it only corrects errors in the 'time' and 'ttytime' fields.
+  """
+
+  def run(self):
+    if not doomrl.debug():
+      print('Server administrators only!')
+      return
+
+    for player in doomrl.all_users():
+      games = doomrl.games(player)  # scores from the player's score index
+      for (i,game) in enumerate(games):
+        if game.get('time', 0) == 0:
+          mortem = doomrl.parse_mortem(game['n'], player)
+          game['time'] = mortem['time']
+        if game.get('ttytime', None) is None:
+          if exists(doomrl.home('archive', '%d.ttyrec' % game['n'], user=player)):
+            ttytime = subprocess.check_output(
+              ['ttytime', 'archive/%d.ttyrec' % game['n']],
+              cwd=doomrl.home(user=player)).split()[0]
+            game['ttytime'] = int(ttytime)
+          else:
+            game['ttytime'] = 0  # no replay available
+      with open(doomrl.home('archive', 'scores', user=player), "w") as fd:
+        for game in games:
+          fd.write(json.dumps(game) + '\n')
+      print('%s: rebuilt %d records' % (player, len(games)))
+
 
 def sighup(sig, frame):
   """Signal handler for SIGHUP, which is raised when the user disconnects suddenly."""

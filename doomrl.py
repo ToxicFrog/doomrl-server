@@ -133,16 +133,19 @@ def games(user=None):
   with open(home('archive', 'scores', user=user)) as fd:
     return [json.loads(line) for line in fd]
 
-def scoreline(game):
+def scoreline(game, time):
   winner = (
     game['killed'] == 'nuked the Mastermind'
     or game['killed'] == 'defeated the Mastermind'
     or game['killed'] == 'completed 100 levels'
     or game['killed'] == 'completed 666 levels')
-  return '%s%4d | %7s %-2s%7d %-14s %sL:%-2d %-33s DL%-2d %s%s' % (
+  seconds = game.get(time, 0)
+  return '%s%4d | %02d:%02d:%02d %-2s%7d %-14s %sL:%-2d %-33s DL%-2d %s%s' % (
     winner and '\x1B[1m' or '',
     game['n'],
-    str(timedelta(seconds=game['time'])),
+    seconds // 60 // 60,
+    seconds // 60 % 60,
+    seconds % 60,
     game['difficulty'],
     game['score'],
     game['name'],
@@ -153,13 +156,13 @@ def scoreline(game):
     game.get('challenge', ''),
     winner and '\x1B[0m' or '')
 
-def show_scores(scores):
+def show_scores(scores, time='time'):
   less = subprocess.Popen(
     ['less', '-R', '-S'],
     universal_newlines=True,
     env={'LESSSECURE': '1', 'TERM': os.getenv('TERM')},
     stdin=subprocess.PIPE)
   for score in scores:
-    less.stdin.write(scoreline(score) + '\n')
+    less.stdin.write(scoreline(score, time) + '\n')
   less.stdin.close()
   less.wait()
