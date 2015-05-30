@@ -134,7 +134,11 @@ def games(user=None):
     return [json.loads(line) for line in fd]
 
 def scoreline(game):
-  winner = game['killed'] == 'nuked the Mastermind' or game['killed'] == 'defeated the Mastermind'
+  winner = (
+    game['killed'] == 'nuked the Mastermind'
+    or game['killed'] == 'defeated the Mastermind'
+    or game['killed'] == 'completed 100 levels'
+    or game['killed'] == 'completed 666 levels')
   return '%s%4d | %7s %-2s%7d %-14s %sL:%-2d %-33s DL%-2d %s%s' % (
     winner and '\x1B[1m' or '',
     game['n'],
