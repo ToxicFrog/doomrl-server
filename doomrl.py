@@ -9,6 +9,7 @@ import xml.etree.ElementTree as etree
 
 from datetime import timedelta
 from os.path import join,isdir,exists
+from collections import defaultdict
 
 # Set up paths
 _root = os.getenv('DOOMRL_SERVER') or os.path.dirname(os.path.realpath(__file__))
@@ -133,15 +134,17 @@ def games(user=None):
   with open(home('archive', 'scores', user=user)) as fd:
     return [json.loads(line) for line in fd]
 
-def scoreline(game, time):
-  winner = (
+def winner(game):
+  return (
     game['killed'] == 'nuked the Mastermind'
     or game['killed'] == 'defeated the Mastermind'
     or game['killed'] == 'completed 100 levels'
     or game['killed'] == 'completed 666 levels')
+
+def scoreline(game, time='time', bold='\x1B[1m', bold_eol='\x1B[0m'):
   seconds = game.get(time, 0)
   return '%s%4d | %02d:%02d:%02d %-2s%7d %-14s %sL:%-2d %-33s DL%-2d %s%s' % (
-    winner and '\x1B[1m' or '',
+    winner(game) and bold or '',
     game['n'],
     seconds // 60 // 60,
     seconds // 60 % 60,
@@ -154,7 +157,7 @@ def scoreline(game, time):
     game['killed'],
     game['depth'],
     game.get('challenge', ''),
-    winner and '\x1B[0m' or '')
+    winner(game) and bold_eol or '')
 
 def show_scores(scores, time='time'):
   less = subprocess.Popen(
@@ -166,3 +169,93 @@ def show_scores(scores, time='time'):
     less.stdin.write(scoreline(score, time) + '\n')
   less.stdin.close()
   less.wait()
+
+# Website structure:
+# www/index.html: top N scores and top killers
+# www/players.html: list of players with K/D ratio for each, click for specific player
+# www/players/<name>/index.html: page listing all of that player's games
+# www/players/<name>/<index>.{mortem,ttyrec}: postmortem and ttyrec files
+# www/players/<name>/<name>.zip: archive of all postmortem and ttyrec files
+def path_to(user, type, game):
+  return home('archive', '%d.%s' % (game['n'], type), user=user)
+
+def link_to(www, user, file):
+  dst = join(www, 'players', user, file)
+  src = home('archive', file, user=user)
+  if exists(dst):
+    return True
+  if exists(src):
+    os.link(src, dst)
+    return True
+  return False
+
+def build_website_for_user(www, user):
+  user_games = games(user)
+  user_games.sort(reverse=True, key=lambda s: int(s['score']))
+
+  if not exists(join(www, 'players', user)):
+    os.makedirs(join(www, 'players', user))
+  with open(join(www, 'players', user, 'index.html'), 'w') as fd:
+    fd.write('<pre>\n')
+    if len(user_games) == 0:
+      fd.write("This user hasn't played any games yet.\n")
+    else:
+      for game in user_games:
+        if link_to(www, user, '%d.mortem' % game['n']):
+          fd.write('[<a href="%d.mortem">LOG</a>]' % game['n'])
+        else:
+          fd.write('[   ]')
+        if link_to(www, user, '%d.ttyrec' % game['n']):
+          fd.write('[<a href="%d.ttyrec">TTY</a>]' % game['n'])
+        else:
+          fd.write('[   ]')
+        fd.write(scoreline(game, bold='<b>', bold_eol='</b>') + '\n')
+    fd.write('</pre>\n')
+  return user_games
+
+def build_website(www):
+  www = join(_root, www)
+  all_games = []
+  if not exists(join(www, 'players')):
+    os.makedirs(join(www, 'players'))
+  with open(join(www, 'players', 'index.html'), 'w') as fd:
+    fd.write('<pre>\n')
+    fd.write('     wins/total\n')
+    for user in all_users():
+      # create/update per-player directory
+      user_games = build_website_for_user(www, user)
+      all_games += user_games
+      fd.write('[   ] %3d/%-3d <a href="%s/index.html">%s</a>\n' % (
+        len([g for g in user_games if winner(g)]),
+        len(user_games),
+        user,
+        user))
+    fd.write('</pre>\n')
+
+  # create/update master index
+  all_games.sort(reverse=True, key=lambda s: int(s['score']))
+  with open(join(www, 'index.html'), 'w') as fd:
+    fd.write('<pre>\n')
+    fd.write('[<a href="players/index.html">By Player</a>][<a href="deaths.html">Top Deaths</a>]\n')
+    for game in all_games:
+      if exists(join(www, 'players', user, '%d.mortem' % game['n'])):
+        fd.write('[<a href="players/%s/%d.mortem">LOG</a>]' % (user, game['n']))
+      else:
+        fd.write('[   ]')
+      if exists(join(www, 'players', user, '%d.ttyrec' % game['n'])):
+        fd.write('[<a href="players/%s/%d.ttyrec">TTY</a>]' % (user, game['n']))
+      else:
+        fd.write('[   ]')
+      fd.write(scoreline(game, bold='<b>', bold_eol='</b>') + '\n')
+    fd.write('</pre>\n')
+
+  # create/update death scoreboard
+  all_deaths = defaultdict(int)
+  for game in all_games:
+    killed = game['killed']
+    all_deaths[killed] += 1
+  with open(join(www, 'deaths.html'), 'w') as fd:
+    fd.write('<pre>\n')
+    for (death,count) in sorted(all_deaths.items(), reverse=True, key=lambda x: x[1]):
+      fd.write('%4d %s\n' % (count, death))
+    fd.write('</pre>\n')

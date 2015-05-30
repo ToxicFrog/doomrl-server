@@ -435,6 +435,8 @@ class PlayCommand(Command):
             fd.write(json.dumps(score) + '\n')
             break
 
+      doomrl.build_website('www')
+
 
 class WatchCommand(Command):
   """watch <player> -- watch an in-progress game of DoomRL.
@@ -658,6 +660,8 @@ class RebuildCommand(Command):
         for game in games:
           fd.write(json.dumps(game) + '\n')
       print('%s: rebuilt %d records' % (player, len(games)))
+
+    doomrl.build_website('www')
 
 
 def sighup(sig, frame):
