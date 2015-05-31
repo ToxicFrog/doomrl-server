@@ -245,12 +245,14 @@ def build_website(www):
              '[<a href="deaths.html">Top Deaths</a>]'
              '</div>\n')
     for game in all_games:
-      if exists(join(www, 'players', user, '%d.mortem' % game['n'])):
-        fd.write('[<a href="players/%s/%d.mortem">LOG</a>]' % (user, game['n']))
+      user = game['name']
+      n = game['n']
+      if exists(join(www, 'players', user, '%d.mortem' % n)):
+        fd.write('[<a href="players/%s/%d.mortem">LOG</a>]' % (user, n))
       else:
         fd.write('[   ]')
-      if exists(join(www, 'players', user, '%d.ttyrec' % game['n'])):
-        fd.write('[<a href="players/%s/%d.ttyrec">TTY</a>]' % (user, game['n']))
+      if exists(join(www, 'players', user, '%d.ttyrec' % n)):
+        fd.write('[<a href="players/%s/%d.ttyrec">TTY</a>]' % (user, n))
       else:
         fd.write('[   ]')
       fd.write(scoreline(game, bold='<b>', bold_eol='</b>') + '\n')
