@@ -176,6 +176,9 @@ def show_scores(scores, time='time'):
 # www/players/<name>/index.html: page listing all of that player's games
 # www/players/<name>/<index>.{mortem,ttyrec}: postmortem and ttyrec files
 # www/players/<name>/<name>.zip: archive of all postmortem and ttyrec files
+_HEADER = '<div style="text-align:center;"><pre style="text-align:left; display:inline-block;">'
+_FOOTER = '</pre></div>'
+
 def path_to(user, type, game):
   return home('archive', '%d.%s' % (game['n'], type), user=user)
 
@@ -196,7 +199,7 @@ def build_website_for_user(www, user):
   if not exists(join(www, 'players', user)):
     os.makedirs(join(www, 'players', user))
   with open(join(www, 'players', user, 'index.html'), 'w') as fd:
-    fd.write('<pre>\n')
+    fd.write(_HEADER)
     if len(user_games) == 0:
       fd.write("This user hasn't played any games yet.\n")
     else:
@@ -210,7 +213,7 @@ def build_website_for_user(www, user):
         else:
           fd.write('[   ]')
         fd.write(scoreline(game, bold='<b>', bold_eol='</b>') + '\n')
-    fd.write('</pre>\n')
+    fd.write(_FOOTER)
   return user_games
 
 def build_website(www):
@@ -219,7 +222,7 @@ def build_website(www):
   if not exists(join(www, 'players')):
     os.makedirs(join(www, 'players'))
   with open(join(www, 'players', 'index.html'), 'w') as fd:
-    fd.write('<pre>\n')
+    fd.write(_HEADER)
     fd.write('     wins/total\n')
     for user in all_users():
       # create/update per-player directory
@@ -230,13 +233,17 @@ def build_website(www):
         len(user_games),
         user,
         user))
-    fd.write('</pre>\n')
+    fd.write(_FOOTER)
 
   # create/update master index
   all_games.sort(reverse=True, key=lambda s: int(s['score']))
   with open(join(www, 'index.html'), 'w') as fd:
-    fd.write('<pre>\n')
-    fd.write('[<a href="players/index.html">By Player</a>][<a href="deaths.html">Top Deaths</a>]\n')
+    fd.write(open(path('webmotd'), 'r').read())
+    fd.write(_HEADER)
+    fd.write('<hr>\n<div style="text-align:center">'
+             '[<a href="players/index.html">By Player</a>]'
+             '[<a href="deaths.html">Top Deaths</a>]'
+             '</div>\n')
     for game in all_games:
       if exists(join(www, 'players', user, '%d.mortem' % game['n'])):
         fd.write('[<a href="players/%s/%d.mortem">LOG</a>]' % (user, game['n']))
@@ -247,7 +254,7 @@ def build_website(www):
       else:
         fd.write('[   ]')
       fd.write(scoreline(game, bold='<b>', bold_eol='</b>') + '\n')
-    fd.write('</pre>\n')
+    fd.write(_FOOTER)
 
   # create/update death scoreboard
   all_deaths = defaultdict(int)
@@ -255,7 +262,7 @@ def build_website(www):
     killed = game['killed']
     all_deaths[killed] += 1
   with open(join(www, 'deaths.html'), 'w') as fd:
-    fd.write('<pre>\n')
+    fd.write(_HEADER)
     for (death,count) in sorted(all_deaths.items(), reverse=True, key=lambda x: x[1]):
       fd.write('%4d %s\n' % (count, death))
-    fd.write('</pre>\n')
+    fd.write(_FOOTER)
