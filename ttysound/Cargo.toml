@@ -1,0 +1,11 @@
+[package]
+name = "ttysound"
+version = "0.1.0"
+authors = ["Ben Kelly <bk@ancilla.ca>"]
+
+[lib]
+name = "ttysound"
+crate-type = ["dylib"]
+
+[dependencies]
+libc="*"
