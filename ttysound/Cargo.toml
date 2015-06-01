@@ -5,6 +5,7 @@ authors = ["Ben Kelly <bk@ancilla.ca>"]
 
 [lib]
 name = "ttysound"
+path = "src/libttysound.rs"
 crate-type = ["dylib"]
 
 [dependencies]
