@@ -9,6 +9,7 @@ use libc::exit;
 use std::ffi::CString;
 use std::io::stderr;
 use std::io::Write;
+use std::mem;
 use std::str;
 use std::ptr;
 
@@ -83,23 +84,32 @@ pub unsafe extern fn Mix_QuerySpec(frequency: *mut i32, format: *mut u16, channe
 //// Sampling functions ////
 ////
 
+fn report(delay: u32, row: u8, msg: String) -> () {
+  print!("\x1B[{};1H\x1B[1m{}", row, msg);
+  std::io::stdout().flush();
+  std::thread::sleep_ms(delay);
+  print!("\x1B[{};1H\x1B[0m{}", row, msg);
+  std::io::stdout().flush();
+}
+
 #[repr(C)]
 pub struct Mix_Chunk;
 
 #[no_mangle]
-pub unsafe extern fn Mix_LoadWAV_RW(src: *mut SDL_RWops, freesrc: i32) -> *const Mix_Chunk {
+pub unsafe extern fn Mix_LoadWAV_RW(src: *mut SDL_RWops, freesrc: i32) -> *const libc::c_void {
   let size = SDL_RWseek(src, 0, 2); // SEEK_END
   SDL_RWseek(src, 0, 0); // SEEK_SET; rewind
-  let mut buf: Vec<u8> = vec![0; size as usize];
-  println!("LoadWAV: read={}", SDL_RWread(src, buf.as_mut_ptr(), 1, size));
-  println!("LoadWAV: size={}, bytes={:?}", size, buf);
-  let desc = CString::from_vec_unchecked(buf);
-  println!("LoadWAV: '{}'", str::from_utf8(desc.to_bytes()).unwrap().trim());
+  let mut buf: Box<Vec<u8>> = Box::new(vec![0; size as usize]);
+  report(500, 30, format!("LoadWAV: read={}", SDL_RWread(src, (*buf).as_mut_ptr(), 1, size)));
+  {
+    let desc = String::from_utf8_lossy(&*buf);
+    report(500, 31, format!("LoadWAV: size={}, bytes={:?}", size, buf));
+    report(500, 32, format!("LoadWAV: '{}'", desc.trim()));
+  }
   if freesrc != 0 {
     SDL_RWclose(src);
   }
-  die("Mix_LoadWAV_RW not implemented.");
-  ptr::null()
+  mem::transmute(buf)
 }
 #[no_mangle]
 pub extern fn Mix_QuickLoad_WAV(mem: *const u8) -> *const Mix_Chunk {
@@ -113,8 +123,8 @@ pub extern fn Mix_VolumeChunk(chunk: *const Mix_Chunk, volume: i32) -> i32 {
 }
 
 #[no_mangle]
-pub extern fn Mix_FreeChunk(chunk: *const Mix_Chunk) -> () {
-  die("Mix_FreeChunk not implemented.");
+pub unsafe extern fn Mix_FreeChunk(chunk: *const Mix_Chunk) -> () {
+  let buf: Box<Vec<u8>> = mem::transmute_copy(&chunk); // freed when it leaves scope
 }
 
 ////
@@ -131,16 +141,24 @@ pub extern fn Mix_AllocateChannels(channels: i32) -> i32 {
 // the CC can display volume as well as sound.
 #[no_mangle]
 pub extern fn Mix_Volume(channel: i32, volume: i32) -> i32 {
-  die("Mix_Volume not implemented!");
+  report(500, 29, format!("Volume: {} at {}", channel, volume));
   volume
 }
 
+// It calls PlayChannelTimed, then volume, then panning
+
 #[no_mangle]
-pub extern fn Mix_PlayChannelTimed(channel: i32,
-                                   chunk: *const Mix_Chunk,
+pub unsafe extern fn Mix_PlayChannelTimed(channel: i32,
+                                   chunk: *const libc::c_void,
                                    loops: i32,
                                    ticks: i32) -> i32 {
-  die("Mix_PlayChannelTimed not implemented.");
+  report(500, 27, format!("Mix_PlayChannelTimed: c={} l={} t={}", channel, loops, ticks));
+  let buf: Box<Vec<u8>> = mem::transmute_copy(&chunk); // Acquires ownership of chunk.
+  {
+    let desc = String::from_utf8_lossy(&*buf);
+    report(500, 26, format!("You hear: {}", desc.trim()));
+  }
+  let buf: *const libc::c_void = mem::transmute(buf); // Relinquish ownership of chunk.
   0
 }
 #[no_mangle]
@@ -391,7 +409,7 @@ pub extern fn Mix_SetPostMix(f: *const u8, arg: *const u8) -> () {
 // of sound, e.g. "you hear <> to the west".
 #[no_mangle]
 pub extern fn Mix_SetPanning(channel: i32, left: u8, right: u8) -> i32 {
-  die("Mix_SetPanning not implemented!");
+  report(500, 28, format!("Panning: {} L {} R {}", channel, left, right));
   1
 }
 #[no_mangle]
