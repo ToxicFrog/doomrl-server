@@ -35,7 +35,7 @@ MenuSound        = false
 SoundEquipPickup = false
 
 -- Override sound settings for close caption support
-if ClosedCaptions then
+if DeafMode then
   SoundEngine = "SDL"
   GameSound = true
   dofile "soundcc.lua"

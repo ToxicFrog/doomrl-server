@@ -12,11 +12,6 @@ InvMenuStyle     = "HYBRID"
 EqMenuStyle      = "HYBRID"
 HelpMenuStyle    = "HYBRID"
 
--- Setting to true will enable EXPERIMENTAL closed caption support.
--- WARNING: this feature is a work in progress. It can crash your game.
--- Finish your N! Ao666 100% run BEFORE you turn this on.
-ClosedCaptions   = false
-
 -- Setting to true will skip the intro
 SkipIntro        = false
 
@@ -35,6 +30,11 @@ BlindMode        = false
 
 -- Setting to true will turn on enhancements for colorblind people.
 ColorBlindMode   = false
+
+-- Setting to true will enable EXPERIMENTAL closed caption support.
+-- WARNING: this feature is a work in progress. It can crash your game.
+-- Finish your N! Ao666 100% run BEFORE you turn this on.
+DeafMode         = false
 
 -- Setting to true will make old messages disappear from the screen
 -- (useful in BlindMode)
