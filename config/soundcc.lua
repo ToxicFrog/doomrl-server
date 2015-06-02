@@ -23,14 +23,18 @@ Sound = {
 		-- so we can't use it as a TICK function :(
 	},
 
+	--
 	-- Creatures
+	--
 
+	-- Former Human
 	former = {
 		die = "cc/former/die",
 		act = "cc/former/act",
 		hit = "cc/former/pain",
 	},
 
+	-- Former Sergeant
 	sergeant = {
 		die			= "cc/former/die-sergeant",
 		act			= "cc/former/act",
@@ -38,7 +42,6 @@ Sound = {
 	},
 
 	-- Former Captain
-
 	captain = {
 		die			= "cc/former/die-captain",
 		act			= "cc/former/act",
@@ -46,34 +49,21 @@ Sound = {
 	},
 
 	-- Former Commando
-
 	commando = {
 		die			= "cc/former/die-commando",
 		act			= "cc/former/act",
 		hit			= "cc/former/pain",
 	},
 
-	--[[
-	--
-	-- Creatures
-	--
-
-	-- Former Human
-
-	-- Former Sergeant
-
-
 	-- Imp
-
 	imp = {
-		die			= "wavhq/dsbgdth1.wav",
-		act			= "wavhq/dsbgact.wav",
-		hit			= "wavhq/dspopain.wav",
-		melee		= "wavhq/dsclaw.wav",
-		fire		= "wavhq/dsfirsht.wav",
-		explode		= "wavhq/dsfirxpl.wav",
-	--	hoof		= "wavhq/dshoof.wav";
+		die			= "cc/die-imp",
+		act			= "cc/act-imp",
+		hit			= "cc/hit-imp",
+		fire		= "cc/fire-imp",
 	},
+
+	--[[
 
 	-- Lost Soul
 
