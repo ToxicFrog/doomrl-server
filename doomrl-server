@@ -154,15 +154,14 @@ class RegisterCommand(Command):
     """Install a personal copy of DoomRL to the given path."""
     # The player gets symlinks to the doomrl binary and wad files. They get
     # their own personal backup, mortem, screenshot, and recording directories,
-    # and their own personal config files (so that they can be edited). We also
-    # customize config.lua with the player's name.
+    # and their own personal config files (so that they can be edited).
     for file in ['core.wad', 'doomrl', 'doomrl.wad']:
       os.symlink(doomrl.path('doomrl', file), doomrl.home(file, user=name))
+    for file in ['colours.lua', 'controls.lua', 'user.lua']:
+      shutil.copy(doomrl.path('config', file), doomrl.home(file, user=name))
     for file in os.listdir(doomrl.path('config')):
-      if isdir(doomrl.path('config', file)):
-        shutil.copytree(doomrl.path('config', file), doomrl.home(file, user=name))
-      else:
-        shutil.copy(doomrl.path('config', file), doomrl.home(file, user=name))
+      if not exists(doomrl.home(file, user=name)):
+        os.symlink(doomrl.path('config', file), doomrl.home(file, user=name))
     for dir in ['backup', 'mortem', 'screenshot', 'saves', 'archive']:
       os.mkdir(pjoin(home, dir))
     with open(pjoin(home, 'passwd'), 'w') as passwd:
