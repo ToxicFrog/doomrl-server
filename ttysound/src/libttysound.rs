@@ -3,7 +3,13 @@
 #![allow(non_camel_case_types)]
 #![allow(unreachable_code)]
 
+#[macro_use]
+extern crate lazy_static;
+
 extern crate libc;
+extern crate time;
+
+use std::collections::HashSet;
 
 use std::io::Write;
 use std::mem;
@@ -32,7 +38,7 @@ pub unsafe extern fn Mix_Linked_Version() -> *const SDL_Version {
 
 #[no_mangle]
 pub extern fn Mix_OpenAudio(frequency: i32, format: u16, channels: i32, chunksize: i32) -> i32 {
-  report(500, 26, format!("Sounds: initialize"));
+  report(500, 26, format!("Sounds: initialized"));
   0
 }
 #[no_mangle]
@@ -59,10 +65,10 @@ pub unsafe extern fn Mix_LoadWAV_RW(src: *mut SDL_RWops, freesrc: i32) -> *const
   SDL_RWseek(src, 0, 0); // SEEK_SET; rewind
   let mut buf: Box<Vec<u8>> = Box::new(vec![0; size as usize]);
   SDL_RWread(src, (*buf).as_mut_ptr(), 1, size);
-  {
-    let desc = String::from_utf8_lossy(&*buf);
-    report(500, 26, format!("Sounds: '{}'", desc.trim()));
-  }
+  // {
+  //   let desc = String::from_utf8_lossy(&*buf);
+  //   report(50, 26, format!("Sounds: '{}'", desc.trim()));
+  // }
   if freesrc != 0 {
     SDL_RWclose(src);
   }
@@ -82,7 +88,7 @@ pub unsafe extern fn Mix_FreeChunk(chunk: *const Mix_Chunk) -> () {
 // the CC can display volume as well as sound.
 #[no_mangle]
 pub extern fn Mix_Volume(channel: i32, volume: i32) -> i32 {
-  report(500, 29, format!("Volume: {} at {}", channel, volume));
+  //report(10, 29, format!("Volume: {} at {}", channel, volume));
   volume
 }
 
@@ -90,31 +96,40 @@ pub extern fn Mix_Volume(channel: i32, volume: i32) -> i32 {
 // of sound, e.g. "you hear <> to the west".
 #[no_mangle]
 pub extern fn Mix_SetPanning(channel: i32, left: u8, right: u8) -> i32 {
-  report(500, 28, format!("Panning: {} L {} R {}", channel, left, right));
+  //report(10, 28, format!("Panning: {} L {} R {}", channel, left, right));
   1
 }
 
 // It calls PlayChannelTimed, then volume, then panning
+
+lazy_static! {
+  static ref SOUNDQ: std::sync::Mutex<HashSet<String>> = std::sync::Mutex::new(HashSet::new());
+}
+static mut sound_time: u64 = 0;
 
 #[no_mangle]
 pub unsafe extern fn Mix_PlayChannelTimed(channel: i32,
                                    chunk: *const libc::c_void,
                                    loops: i32,
                                    ticks: i32) -> i32 {
-  report(500, 27, format!("Mix_PlayChannelTimed: c={} l={} t={}", channel, loops, ticks));
+  let now = time::precise_time_ns();
+  if (now - sound_time) > 100*1000*1000 { // 100ms
+    // report and clear time
+    let mut soundq = SOUNDQ.lock().unwrap();
+    (*soundq).clear();
+    //report(10, 27, format!("Clear queue, st={}, now={}", sound_time/1000/1000, now/1000/1000));
+  }
   let buf: Box<Vec<u8>> = mem::transmute_copy(&chunk); // Acquires ownership of chunk.
   {
     let desc = String::from_utf8_lossy(&*buf);
-    report(500, 26, format!("You hear: {}", desc.trim()));
+    let mut soundq = SOUNDQ.lock().unwrap();
+    (*soundq).insert(desc.trim().to_string());
+    report(33, 26, format!("  You hear:{}", (*soundq).iter().fold("".to_string(), |l,r| { l + "  " + &r })));
+    //soundq.push_front(desc.clone());
+    //report(10, 26, format!("  You hear: {}", desc.trim()));
   }
+  //report(10, 27, format!("Mix_PlayChannelTimed: c={} l={} t={}", channel, loops, ticks));
+  sound_time = time::precise_time_ns();
   let buf: *const libc::c_void = mem::transmute(buf); // Relinquish ownership of chunk.
   0
 }
-//// Stuff implenented in Pascal using the above functions ////
-// function Mix_LoadWAV( filename : PChar ) : PMix_Chunk;
-// function Mix_PlayChannel( channel : integer; chunk : PMix_Chunk; loops : integer ) : integer;
-// function Mix_FadeInChannel( channel : integer; chunk : PMix_Chunk; loops : integer; ms : integer ) : integer;
-// function Mix_GetError : PChar;
-// function Mix_LoadWAV( filename : PChar ) : PMix_Chunk;
-// function Mix_PlayChannel( channel : integer; chunk : PMix_Chunk; loops : integer ) : integer;
-// function Mix_FadeInChannel( channel : integer; chunk : PMix_Chunk; loops :

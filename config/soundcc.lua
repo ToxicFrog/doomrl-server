@@ -2,14 +2,55 @@ Sound = {
 	-- Door
 
 	door			= {
-		open		= "wavcc/door-open",
-		close		= "wavcc/door-close",
+		open		= "cc/door-open",
+		close		= "cc/door-close",
 	},
 
 	-- Teleport
 
 	teleport = {
-		use			= "wavcc/teleport",
+		use			= "cc/teleport",
+	},
+
+	-- default sounds
+	explode = "cc/explode",
+	fire = "cc/gunfire",
+
+	-- Player
+	soldier = {
+		-- turns out nothing here works except for:
+		--  melee hit die phase
+		-- so we can't use it as a TICK function :(
+	},
+
+	-- Creatures
+
+	former = {
+		die = "cc/former/die",
+		act = "cc/former/act",
+		hit = "cc/former/pain",
+	},
+
+	sergeant = {
+		die			= "cc/former/die-sergeant",
+		act			= "cc/former/act",
+		hit			= "cc/former/pain",
+	},
+
+	-- Former Captain
+
+	captain = {
+		die			= "cc/former/die-captain",
+		act			= "cc/former/act",
+		hit			= "cc/former/pain",
+	},
+
+	-- Former Commando
+
+	commando = {
+		die			= "cc/former/die-commando",
+		act			= "cc/former/act",
+		hit			= "cc/former/pain",
 	},
 
 	--[[
@@ -19,43 +60,8 @@ Sound = {
 
 	-- Former Human
 
-	former = {
-		die			= "wavcc/human-die-1",
-		act			= "wavcc/human-act",
-		hit			= "wavhq/dspopain.wav",
-		melee		= "wavcc/human-punch",
-	--	hoof		= "wavhq/dshoof.wav";
-	},
-
 	-- Former Sergeant
 
-	sergeant = {
-		die			= "wavcc/human-die-2",
-		act			= "wavcc/human-act",
-		hit			= "wavhq/dspopain.wav",
-		melee		= "wavcc/human-punch",
-	--	hoof		= "wavhq/dshoof.wav";
-	},
-
-	-- Former Captain
-
-	captain = {
-		die			= "wavcc/human-die-2",
-		act			= "wavcc/human-act",
-		hit			= "wavhq/dspopain.wav",
-		melee		= "wavcc/human-punch",
-	--	hoof		= "wavhq/dshoof.wav";
-	},
-
-	-- Former Commando
-
-	commando = {
-		die			= "wavcc/human-die-3",
-		act			= "wavcc/human-act",
-		hit			= "wavhq/dspopain.wav",
-		melee		= "wavcc/human-punch",
-	--	hoof		= "wavhq/dshoof.wav";
-	},
 
 	-- Imp
 
@@ -200,10 +206,10 @@ Sound = {
 	-- JC
 
 	jc = {
-		die			= "wavcc/human-die-1",
-		act			= "wavcc/human-act",
+		die			= "cc/human-die-1",
+		act			= "cc/human-act",
 		hit			= "wavhq/dspopain.wav",
-		melee		= "wavcc/human-punch",
+		melee		= "cc/human-punch",
 	--	hoof		= "wavhq/dshoof.wav";
 	},
 
