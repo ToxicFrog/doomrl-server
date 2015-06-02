@@ -19,12 +19,16 @@ use types::*;
 
 pub mod stubs;
 
+fn emit(row: u8, msg: String) -> () {
+  print!("\x1B[{};1H\x1B[0m{}", row, msg);
+  std::io::stdout().flush();
+}
+
 fn report(delay: u32, row: u8, msg: String) -> () {
   print!("\x1B[{};1H\x1B[2K\x1B[1m{}", row, msg);
   std::io::stdout().flush();
   std::thread::sleep_ms(delay);
-  print!("\x1B[{};1H\x1B[0m{}", row, msg);
-  std::io::stdout().flush();
+  emit(row, msg);
 }
 
 //// General functions ////
@@ -117,6 +121,7 @@ pub unsafe extern fn Mix_PlayChannelTimed(channel: i32,
     // report and clear time
     let mut soundq = SOUNDQ.lock().unwrap();
     (*soundq).clear();
+    report(50, 26, "  You hear:".to_string());
     //report(10, 27, format!("Clear queue, st={}, now={}", sound_time/1000/1000, now/1000/1000));
   }
   let buf: Box<Vec<u8>> = mem::transmute_copy(&chunk); // Acquires ownership of chunk.
@@ -124,7 +129,7 @@ pub unsafe extern fn Mix_PlayChannelTimed(channel: i32,
     let desc = String::from_utf8_lossy(&*buf);
     let mut soundq = SOUNDQ.lock().unwrap();
     (*soundq).insert(desc.trim().to_string());
-    report(33, 26, format!("  You hear:{}", (*soundq).iter().fold("".to_string(), |l,r| { l + "  " + &r })));
+    emit(26, format!("  You hear:{}", (*soundq).iter().fold("".to_string(), |l,r| { l + "  " + &r })));
     //soundq.push_front(desc.clone());
     //report(10, 26, format!("  You hear: {}", desc.trim()));
   }
