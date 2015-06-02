@@ -34,6 +34,13 @@ MenuSound        = false
 -- swapping.
 SoundEquipPickup = false
 
+-- Override sound settings for close caption support
+if ClosedCaptions then
+  SoundEngine = "SDL"
+  GameSound = true
+  dofile "soundcc.lua"
+end
+
 -- If set to true will archive EVERY mortem.txt produced in the mortem subfolder.
 -- The amount of files can get big after a while :)
 MortemArchive    = true

@@ -159,7 +159,10 @@ class RegisterCommand(Command):
     for file in ['core.wad', 'doomrl', 'doomrl.wad']:
       os.symlink(doomrl.path('doomrl', file), doomrl.home(file, user=name))
     for file in os.listdir(doomrl.path('config')):
-      shutil.copy(doomrl.path('config', file), doomrl.home(file, user=name))
+      if isdir(doomrl.path('config', file)):
+        shutil.copytree(doomrl.path('config', file), doomrl.home(file, user=name))
+      else:
+        shutil.copy(doomrl.path('config', file), doomrl.home(file, user=name))
     for dir in ['backup', 'mortem', 'screenshot', 'saves', 'archive']:
       os.mkdir(pjoin(home, dir))
     with open(pjoin(home, 'passwd'), 'w') as passwd:
@@ -349,6 +352,12 @@ class PlayCommand(Command):
     child = subprocess.Popen(
       ['./doomrl'],
       stdout=wpipe,
+      env={
+        "LD_LIBRARY_PATH": doomrl.path('ttysound'),
+        "SDL_AUDIODRIVER": 'disk',
+        'SDL_DISKAUDIOFILE': '/dev/null',
+        'TERM': os.getenv('TERM'),
+      },
       cwd=doomrl.home())
     os.close(wpipe)
 
