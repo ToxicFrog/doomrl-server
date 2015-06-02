@@ -38,7 +38,7 @@ pub unsafe extern fn Mix_Linked_Version() -> *const SDL_Version {
 
 #[no_mangle]
 pub extern fn Mix_OpenAudio(frequency: i32, format: u16, channels: i32, chunksize: i32) -> i32 {
-  report(500, 26, format!("Sounds: initialized"));
+  report(500, 26, format!("  You hear:  silence"));
   0
 }
 #[no_mangle]
