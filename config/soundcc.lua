@@ -1,13 +1,17 @@
+if DeafMode ~= 'symbolic' and DeafMode ~= 'descriptive' then
+  DeafMode = 'raw'
+end
+
 Sound = {
   door = {
-    open  = 'cc/door/open';
-    close = 'cc/door/close';
+    open  = 'cc/'..DeafMode..'/door/open';
+    close = 'cc/'..DeafMode..'/door/close';
   };
   teleport = {
-    use   = 'cc/teleporter';
+    use   = 'cc/'..DeafMode..'/teleporter';
   };
-  explode = 'cc/explosion';
-  fire    = 'cc/gunfire';
+  explode = 'cc/'..DeafMode..'/explosion';
+  fire    = 'cc/'..DeafMode..'/gunfire';
   pickup  = 'cc/TICK';
   reload  = 'cc/TICK';
   powerup = 'cc/TICK';
@@ -37,9 +41,10 @@ local enemies = {
 for i=1,#enemies do
   local name = enemies[i]
   local sounds = {}
-  sounds.die  = 'cc/'..name..'/die'
-  sounds.act  = 'cc/'..name..'/act'
-  sounds.hit = 'cc/'..name..'/hit'
+  sounds.die  = 'cc/'..DeafMode..'/'..name..'/die'
+  sounds.act  = 'cc/'..DeafMode..'/'..name..'/act'
+  sounds.hit = 'cc/'..DeafMode..'/'..name..'/hit'
+  sounds.fire = 'cc/'..DeafMode..'/'..name..'/fire'
   sounds.hoof = 'cc/TICK'
   Sound[name] = sounds
 end
