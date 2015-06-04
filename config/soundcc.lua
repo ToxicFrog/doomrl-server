@@ -24,6 +24,6 @@ for i=1,#enemies do
   local sounds = {}
   sounds.die  = 'cc/'..name..'/die'
   sounds.act  = 'cc/'..name..'/act'
-  sounds.pain = 'cc/'..name..'/pain'
+  sounds.hit = 'cc/'..name..'/hit'
   Sound[name] = sounds
 end
