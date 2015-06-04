@@ -10,6 +10,7 @@ extern crate libc;
 extern crate time;
 
 use std::collections::HashSet;
+use std::collections::VecDeque;
 
 use std::io::Write;
 use std::mem;
@@ -20,7 +21,7 @@ use types::*;
 pub mod stubs;
 
 fn emit(row: u8, msg: String) -> () {
-  print!("\x1B[{};1H\x1B[0m{}", row, msg);
+  print!("\x1B[{};1H\x1B[2K\x1B[0m{}", row, msg);
   std::io::stdout().flush().unwrap();
 }
 
@@ -106,10 +107,17 @@ pub extern fn Mix_SetPanning(channel: i32, left: u8, right: u8) -> i32 {
 
 // It calls PlayChannelTimed, then volume, then panning
 
+struct SoundEvent {
+  sound: String,
+  panning: u8,
+  volume: u8,
+  turn: u64,
+}
 lazy_static! {
-  static ref SOUNDQ: std::sync::Mutex<HashSet<String>> = std::sync::Mutex::new(HashSet::new());
+  static ref SOUNDQ: std::sync::Mutex<VecDeque<SoundEvent>> = std::sync::Mutex::new(VecDeque::new());
 }
 static mut sound_time: u64 = 0;
+static mut sound_turn: u64 = 0;
 
 #[no_mangle]
 pub unsafe extern fn Mix_PlayChannelTimed(channel: i32,
@@ -119,22 +127,47 @@ pub unsafe extern fn Mix_PlayChannelTimed(channel: i32,
   let now = time::precise_time_ns();
   if (now - sound_time) > 100*1000*1000 { // 100ms
     // report and clear time
+    sound_turn += 1;
     let mut soundq = SOUNDQ.lock().unwrap();
-    (*soundq).clear();
-    report(50, 26, "  You hear:".to_string());
+    loop {
+      let remove = match soundq.back() {
+        Some(evt) => (sound_turn - evt.turn) >= 3,
+        None => break
+      };
+      if remove {
+        soundq.pop_back();
+      } else {
+        break
+      }
+    }
+    soundq.push_front(SoundEvent {
+      sound: "|".to_string(),
+      panning: 0,
+      volume: 0,
+      turn: sound_turn,
+    })
+    //report(50, 29, format!("  Event filter: {:p}", &SDL_GetEventFilter()));
     //report(10, 27, format!("Clear queue, st={}, now={}", sound_time/1000/1000, now/1000/1000));
   }
   let buf: Box<Vec<u8>> = mem::transmute_copy(&chunk); // Acquires ownership of chunk.
   {
-    let desc = String::from_utf8_lossy(&*buf);
     let mut soundq = SOUNDQ.lock().unwrap();
-    (*soundq).insert(desc.trim().to_string());
-    emit(26, format!("  You hear:{}", (*soundq).iter().fold("".to_string(), |l,r| { l + "  " + &r })));
-    //soundq.push_front(desc.clone());
-    //report(10, 26, format!("  You hear: {}", desc.trim()));
+    if buf.len() > 1 {
+      let desc = String::from_utf8_lossy(&*buf);
+      soundq.push_front(SoundEvent {
+        sound: desc.trim().to_string(),
+        panning: 0,
+        volume: 0,
+        turn: sound_turn,
+      });
+    }
+    let mut seen: HashSet<&String> = HashSet::new();
+    emit(26, format!("  You hear:{}",
+                     soundq.iter()
+                           .filter(|evt| if seen.contains(&evt.sound) { false } else { seen.insert(&evt.sound); true })
+                           .fold("".to_string(), |l,r| { l + "  " + &r.sound })));
   }
-  //report(10, 27, format!("Mix_PlayChannelTimed: c={} l={} t={}", channel, loops, ticks));
-  sound_time = time::precise_time_ns();
   let buf: *const libc::c_void = mem::transmute(buf); // Relinquish ownership of chunk.
+  sound_time = time::precise_time_ns();
   0
 }
