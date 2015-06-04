@@ -21,12 +21,12 @@ pub mod stubs;
 
 fn emit(row: u8, msg: String) -> () {
   print!("\x1B[{};1H\x1B[0m{}", row, msg);
-  std::io::stdout().flush();
+  std::io::stdout().flush().unwrap();
 }
 
 fn report(delay: u32, row: u8, msg: String) -> () {
   print!("\x1B[{};1H\x1B[2K\x1B[1m{}", row, msg);
-  std::io::stdout().flush();
+  std::io::stdout().flush().unwrap();
   std::thread::sleep_ms(delay);
   emit(row, msg);
 }
