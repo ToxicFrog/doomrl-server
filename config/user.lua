@@ -31,9 +31,13 @@ BlindMode        = false
 -- Setting to true will turn on enhancements for colorblind people.
 ColorBlindMode   = false
 
--- Setting to true will enable EXPERIMENTAL closed caption support.
+-- Setting this will enable EXPERIMENTAL closed caption support.
 -- WARNING: this feature is a work in progress. It can crash your game.
 -- Finish your N! Ao666 100% run BEFORE you turn this on.
+-- If set to "symbolic", it will show you the monster symbols, accompanied with
+-- !/*/% for shoot/hurt/die.
+-- If set to "descriptive", it will show you descriptions of the sounds.
+-- If set to anything else (except false), it will show you the raw event names.
 DeafMode         = false
 
 -- Setting to true will make old messages disappear from the screen
