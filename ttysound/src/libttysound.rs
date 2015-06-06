@@ -113,11 +113,20 @@ struct SoundEvent {
   volume: u8,
   turn: u64,
 }
-lazy_static! {
-  static ref SOUNDQ: std::sync::Mutex<VecDeque<SoundEvent>> = std::sync::Mutex::new(VecDeque::new());
+struct SoundState {
+  sounds: VecDeque<SoundEvent>,
+  time: u64,
+  turn: u64,
+  last_frame: String,
 }
-static mut sound_time: u64 = 0;
-static mut sound_turn: u64 = 0;
+lazy_static! {
+  static ref STATE: std::sync::Mutex<SoundState> = std::sync::Mutex::new(SoundState {
+    sounds: VecDeque::new(),
+    time: 0,
+    turn: 0,
+    last_frame: String::new(),
+  });
+}
 
 #[no_mangle]
 pub unsafe extern fn Mix_PlayChannelTimed(channel: i32,
@@ -125,49 +134,51 @@ pub unsafe extern fn Mix_PlayChannelTimed(channel: i32,
                                    loops: i32,
                                    ticks: i32) -> i32 {
   let now = time::precise_time_ns();
-  if (now - sound_time) > 100*1000*1000 { // 100ms
+  //Get a &mut SoundState (from the Mutex), and then do `let SoundState { ref mut sounds, ref mut last_frame } = *sound_state_ref;`
+  let mut state_guard = STATE.lock().unwrap();
+  let SoundState { ref mut sounds, ref mut last_frame, ref mut time, ref mut turn } = *&mut *state_guard;
+  if (now - *time) > 100*1000*1000 { // 100ms
     // report and clear time
-    sound_turn += 1;
-    let mut soundq = SOUNDQ.lock().unwrap();
+    *turn += 1;
     loop {
-      let remove = match soundq.back() {
-        Some(evt) => (sound_turn - evt.turn) >= 3,
+      let remove = match sounds.back() {
+        Some(evt) => (*turn - evt.turn) >= 3,
         None => break
       };
       if remove {
-        soundq.pop_back();
+        sounds.pop_back();
       } else {
         break
       }
     }
-    soundq.push_front(SoundEvent {
+    sounds.push_front(SoundEvent {
       sound: "|".to_string(),
       panning: 0,
       volume: 0,
-      turn: sound_turn,
+      turn: *turn,
     })
-    //report(50, 29, format!("  Event filter: {:p}", &SDL_GetEventFilter()));
-    //report(10, 27, format!("Clear queue, st={}, now={}", sound_time/1000/1000, now/1000/1000));
   }
   let buf: Box<Vec<u8>> = mem::transmute_copy(&chunk); // Acquires ownership of chunk.
   {
-    let mut soundq = SOUNDQ.lock().unwrap();
     if buf.len() > 1 {
       let desc = String::from_utf8_lossy(&*buf);
-      soundq.push_front(SoundEvent {
+      sounds.push_front(SoundEvent {
         sound: desc.trim().to_string(),
         panning: 0,
         volume: 0,
-        turn: sound_turn,
+        turn: *turn,
       });
     }
     let mut seen: HashSet<&String> = HashSet::new();
-    emit(26, format!("  You hear:{}",
-                     soundq.iter()
-                           .filter(|evt| if seen.contains(&evt.sound) { false } else { seen.insert(&evt.sound); true })
-                           .fold("".to_string(), |l,r| { l + "  " + &r.sound })));
+    let heard: String = sounds.iter()
+                              .filter(|evt| if seen.contains(&evt.sound) { false } else { seen.insert(&evt.sound); true })
+                              .fold("".to_string(), |l,r| { l + "  " + &r.sound });
+    if heard != *last_frame {
+      emit(26, format!("  You hear:{}", heard));
+      *last_frame = heard;
+    }
   }
   let buf: *const libc::c_void = mem::transmute(buf); // Relinquish ownership of chunk.
-  sound_time = time::precise_time_ns();
+  *time = time::precise_time_ns();
   0
 }
