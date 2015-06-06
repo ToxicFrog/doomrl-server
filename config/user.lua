@@ -37,7 +37,8 @@ ColorBlindMode   = false
 -- If set to "symbolic", it will show you the monster symbols, accompanied with
 -- !/*/% for shoot/hurt/die.
 -- If set to "descriptive", it will show you descriptions of the sounds.
--- If set to anything else (except false), it will show you the raw event names.
+-- If set to "raw", it will show you the raw event names.
+-- Anything else will be interpreted as "symbolic".
 DeafMode         = false
 
 -- Setting to true will make old messages disappear from the screen

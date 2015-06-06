@@ -1,5 +1,5 @@
-if DeafMode ~= 'symbolic' and DeafMode ~= 'descriptive' then
-  DeafMode = 'raw'
+if DeafMode ~= 'raw' and DeafMode ~= 'descriptive' then
+  DeafMode = 'symbolic'
 end
 
 Sound = {
