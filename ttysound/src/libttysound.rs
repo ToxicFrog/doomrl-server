@@ -152,7 +152,7 @@ pub unsafe extern fn Mix_PlayChannelTimed(channel: i32,
       }
     }
     sounds.push_front(SoundEvent {
-      sound: "|".to_string(),
+      sound: "\x1B[1;37m|\x1B[0m".to_string(),
       panning: 0,
       volume: 0,
       turn: *turn,
