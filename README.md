@@ -4,7 +4,7 @@ A nethack.alt.org-inspired frontend for hosting a multiplayer DoomRL server. Pla
 
 It has optional support for a web-based scoreboard and subtitles, too.
 
-## Installation
+## Installing doomrl-server
 
 Before you can run it, DoomRL-server has a number of requirements:
 
@@ -40,7 +40,7 @@ doomrl-server assumes that the directory containing the `doomrl-server` script i
 The DoomRL configuration files are located in `config/`; these override the default configs that come with DoomRL, which will be copied into each player's user directory. The default values should be fine, but you may want to look them over (for example, to enable a custom mod server). The `controls.lua`, `colours.lua`, and `user.lua` files are editable by the user via the `config` command; the `config.lua` file is appended to by doomrl-server at user registration time but otherwise static. Other files in that directory (such as `soundcc.lua`) are not user editable.
 
 
-## Subtitles
+## Enabling subtitle support
 
 `doomrl-server` supports subtitles, via loading a custom audio library. This support is automatically activated if the library is present. The library is written in Rust, and included in the doomrl-server distribution.
 
