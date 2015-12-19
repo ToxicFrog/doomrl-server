@@ -2,6 +2,8 @@
 
 A nethack.alt.org-inspired frontend for hosting a multiplayer DoomRL server. Players have personal save files, ranks, and player stats, but there is a shared high score list and games can be viewed by spectators.
 
+It has optional support for a web-based scoreboard and subtitles, too.
+
 ## Installation
 
 Before you can run it, DoomRL-server has a number of requirements:
@@ -31,11 +33,44 @@ You can then install doomrl-server to that user's home directory, unpack a fresh
 
 At this point, anyone logging as "doomrl" (for example, over telnet) will end up running the doomrl-server shell. If you would rather not permit this, you can also run it as an inetd service; a sample xinetd configuration file is provided as `doomrl-server.xinetd`. Note that the xinetd configuration uses telnetd to launch doomrl-server, as it handles setting up the terminal correctly; without this doomrl is unlikely to work.
 
-## Configuration
+### Configuration
 
-There's not much to configure. It assumes that the directory containing the doomrl-server script is the root of the doomrl-server install; if this is incorrect, set the environment variable `DOOMRL_SERVER` appropriately.
+doomrl-server assumes that the directory containing the `doomrl-server` script is the root of the doomrl-server install; if this is incorrect, set the environment variable `DOOMRL_SERVER` appropriately.
 
-Apart from that, the only thing to do is edit the DoomRL configuration files in `config/`; these override the default configs that come with DoomRL, which will be copied into each player's user directory. The default values should be fine, but you may want to look them over (for example, to enable a custom mod server). The `controls.lua`, `colours.lua`, and `user.lua` files are editable by the user via the `config` command; the `config.lua` file is appended to by doomrl-server at user registration time but otherwise static.
+The DoomRL configuration files are located in `config/`; these override the default configs that come with DoomRL, which will be copied into each player's user directory. The default values should be fine, but you may want to look them over (for example, to enable a custom mod server). The `controls.lua`, `colours.lua`, and `user.lua` files are editable by the user via the `config` command; the `config.lua` file is appended to by doomrl-server at user registration time but otherwise static. Other files in that directory (such as `soundcc.lua`) are not user editable.
+
+
+## Subtitles
+
+`doomrl-server` supports subtitles, via loading a custom audio library. This support is automatically activated if the library is present. The library is written in Rust, and included in the doomrl-server distribution.
+
+To build it, you'll need `cargo`, the Rust build tool, installed. Once you have that:
+
+    $ cd ttysound; cargo build
+
+No further setup is needed (but some configuration settings are available; see below).
+
+For information on using subtitle support stand-alone (i.e. not as part of doomrl-server), see `ttysound/README.md`.
+
+### Configuration
+
+In the config files that ship with doomrl-server, subtitle support, if available, is activated via the `DeafMode` setting (by analogy to `ColorBlindMode`). Setting it to `false` will disable subtitles. Setting it to `"raw"` or `"symbolic"` will enable different representations of sound. (`"descriptive"` is also available as an option, but is not yet implemented and currently behaves as `"raw"`). Any other value is treated as `"symbolic"`, which is also the default if `DeafMode` is not set at all.
+
+To change the default settings, edit `user.lua`. The code that actually loads the appropriate settings is in `config.lua`.
+
+If you want to change the way sounds are actually displayed in game, the subtitle files are in `config/cc`. Each sound is in its own file, in `config/cc/<subtitle type>/<creature type>/<event name>`. If you want to add a completely new subtitle type, make sure to also edit `soundcc.lua` -- the first few lines are what determine which subtitle types are recognized as valid.
+
+
+## Web Scoreboard
+
+After every completed game (successful or otherwise :), doomrl-server updates a static web scoreboard in `www/`. This site lists scores (both overall and per player) and allows people to download mortem files and ttyrecs. doomrl-server doesn't serve the scoreboard; it's up to you to provide the web server. Sample configuration files for thttpd are provided.
+
+### Configuration
+
+The scoreboard homepage is prefaced with the contents of the `webmotd` file. You may want to edit this to include things like the name of your server and a `telnet://` link to the actual doomrl-server instance.
+
+If you're using thttpd as the web server, sample configuration files are also provided. `thttp.conf` is the configuration file for the web server itself; `thttpd-doomrl.service` is a systemd service file for running it. You should read and edit both of them, as they make some assumptions that may not be correct (for example, they assume that doomrl-server is installed in `/var/lib/doomrl/`, and that you want to serve the scoreboard on port 8666).
+
 
 ## Directories
 
@@ -62,6 +97,10 @@ Archived mortem and ttyrec files and the server scores file for that player.
     games/
 
 This holds information about games in progress. For each game there's a ttyrec file named for the player. If the player has a game in progress but is not currently playing, the file has a `.<name>` suffix, where `name` is the name given to that game by the player.
+
+    www/
+
+Holds the static web scoreboard. Regenerated every time a game is finished.
 
 ## Special files
 
@@ -90,8 +129,6 @@ To use it, register the player, and then, *from the root of your doomrl-server i
 In the latter case, it may not always be able to narrow it down to a single high score entry. In that case, you will get a `writing duplicate scorelines, please edit and correct` message. Open the `players/<name>/archive/scores` file, find the duplicate entries, and read the corresponding mortem files to figure out which is the correct one (if possible) and delete the rest.
 
 ## Future Work
-
-Generation of a static web interface for high score lists and mortem/ttyrec files in `www/`.
 
 `wins` command to list winning games only.
 
