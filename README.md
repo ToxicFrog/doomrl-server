@@ -54,9 +54,9 @@ For information on using subtitle support stand-alone (i.e. not as part of doomr
 
 ### Configuration
 
-In the config files that ship with doomrl-server, subtitle support, if available, is activated via the `DeafMode` setting (by analogy to `ColorBlindMode`). Setting it to `false` will disable subtitles. Setting it to `"raw"` or `"symbolic"` will enable different representations of sound. (`"descriptive"` is also available as an option, but is not yet implemented and currently behaves as `"raw"`). Any other value is treated as `"symbolic"`, which is also the default if `DeafMode` is not set at all.
+In the config files that ship with doomrl-server, subtitle support, if available, is activated via the `DeafMode` setting (by analogy to `ColorBlindMode`). Setting it to `"raw"` or `"symbolic"` will enable different representations of sound. Setting it to `"default"` will select the default setting for this server. Any other value will disable subtitles.
 
-To change the default settings, edit `user.lua`. The code that actually loads the appropriate settings is in `config.lua`.
+To change the default setting for new users, edit `user.lua`. To change the default setting for this server (i.e. what users get when they select `"default"`), edit `soundcc.lua`.
 
 If you want to change the way sounds are actually displayed in game, the subtitle files are in `config/cc`. Each sound is in its own file, in `config/cc/<subtitle type>/<creature type>/<event name>`. If you want to add a completely new subtitle type, make sure to also edit `soundcc.lua` -- the first few lines are what determine which subtitle types are recognized as valid.
 

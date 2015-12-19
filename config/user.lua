@@ -36,9 +36,10 @@ ColorBlindMode   = false
 -- !/*/% for shoot/hurt/die.
 -- If set to "descriptive", it will show you descriptions of the sounds.
 -- If set to "raw", it will show you the raw event names.
--- Anything else will be interpreted as "symbolic".
--- To turn it off entirely, set it to false.
-DeafMode         = "symbolic"
+-- If set to "default", it will use the default setting for this server, usually
+-- "symbolic".
+-- Any other setting will disable subtitles.
+DeafMode         = "default"
 
 -- Setting to true will make old messages disappear from the screen
 -- (useful in BlindMode)

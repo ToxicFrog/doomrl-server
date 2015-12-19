@@ -34,13 +34,6 @@ MenuSound        = false
 -- swapping.
 SoundEquipPickup = false
 
--- Override sound settings for close caption support
-if DeafMode ~= false then
-  SoundEngine = "SDL"
-  GameSound = true
-  dofile "soundcc.lua"
-end
-
 -- If set to true will archive EVERY mortem.txt produced in the mortem subfolder.
 -- The amount of files can get big after a while :)
 MortemArchive    = true
@@ -151,3 +144,5 @@ LockBreak        = true
 -- Windows only - Disables closing of DoomRL by console close button.
 -- true by default.
 LockClose        = true
+
+dofile "soundcc.lua"

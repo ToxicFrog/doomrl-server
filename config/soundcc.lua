@@ -1,17 +1,35 @@
-if DeafMode ~= 'raw' and DeafMode ~= 'descriptive' then
-  DeafMode = 'symbolic'
-end
+-- Supported styles. Edit this list if you're adding a new style, or an alias
+-- for an existing one.
+local styles = {
+  default = 'symbolic';
+  symbolic = 'symbolic';
+  raw = 'raw';
+  descriptive = 'descriptive';
+}
 
+local style = styles[DeafMode]
+
+-- Unrecognized DeafMode will result in it being set to nil. In that case
+-- (or if explicitly set to false), early return without changing any settings.
+if not style then return end
+
+-- Override sound engine settings.
+SoundEngine = "SDL"
+GameSound = true
+GameMusic = false
+MenuSound = false
+
+-- Override sound effects map.
 Sound = {
   door = {
-    open  = 'cc/'..DeafMode..'/door/open';
-    close = 'cc/'..DeafMode..'/door/close';
+    open  = 'cc/'..style..'/door/open';
+    close = 'cc/'..style..'/door/close';
   };
   teleport = {
-    use   = 'cc/'..DeafMode..'/teleporter';
+    use   = 'cc/'..style..'/teleporter';
   };
-  explode = 'cc/'..DeafMode..'/explosion';
-  fire    = 'cc/'..DeafMode..'/gunfire';
+  explode = 'cc/'..style..'/explosion';
+  fire    = 'cc/'..style..'/gunfire';
   pickup  = 'cc/TICK';
   reload  = 'cc/TICK';
   powerup = 'cc/TICK';
@@ -41,10 +59,10 @@ local enemies = {
 for i=1,#enemies do
   local name = enemies[i]
   local sounds = {}
-  sounds.die  = 'cc/'..DeafMode..'/'..name..'/die'
-  sounds.act  = 'cc/'..DeafMode..'/'..name..'/act'
-  sounds.hit = 'cc/'..DeafMode..'/'..name..'/hit'
-  sounds.fire = 'cc/'..DeafMode..'/'..name..'/fire'
+  sounds.die  = 'cc/'..style..'/'..name..'/die'
+  sounds.act  = 'cc/'..style..'/'..name..'/act'
+  sounds.hit = 'cc/'..style..'/'..name..'/hit'
+  sounds.fire = 'cc/'..style..'/'..name..'/fire'
   sounds.hoof = 'cc/TICK'
   Sound[name] = sounds
 end

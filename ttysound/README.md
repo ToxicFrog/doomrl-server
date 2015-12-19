@@ -25,21 +25,11 @@ It does not support the graphical version of DoomRL. It has only been tested on 
   - `cargo build`
 
   If this works you should have a `ttysound/libttysound.so` file, and a `ttysound/libSDL_mixer-1.2.so.0` symlink pointing to it. The latter is what DoomRL will load.
-- Edit `config.lua` to load the subtitle configuration:
-  - delete the `dofile "musichq.lua"` and `dofile "soundhq.lua"` lines, if present
-  - add the line: `dofile "soundcc.lua"`
-  - make sure the file contains the following settings:
+- Edit `config.lua` and add the following lines *at the bottom*:
+  - `DeafMode = "symbolic"`
+  - `dofile "soundcc.lua"`
 
-    ```
-    Graphics = "CONSOLE"
-    SoundEngine = "SDL"
-    MenuSound = false
-    GameSound = true
-    GameMusic = false
-    DeafMode = "symbolic"
-    ```
-
-    Note that you can't just paste all of these in at the top, as they'll be overriden by the default settings later in the file -- find the existing settings and change them.
+  It is important that they be in that order. (See `Settings` below for other possible values of `DeafMode`.)
 - Finally, launch DoomRL using one of the `doomrl_cc` scripts rather than the ones that come with DoomRL. If you don't use those scripts, the environment variables you need to set for subtitles to work properly are:
 
   ```
@@ -59,7 +49,8 @@ To turn them off completely, simply set `SoundEngine = "NONE"` in the configurat
 To change the style, change the value of the `DeafMode` setting. At the moment there are three supported styles:
 
 - `"symbolic"`, the default, displays 1-3 character symbols based on the existing monster symbols and visual effects.
+- `"default"` is an alias for `"symbolic"`.
 - `"raw"` displays raw event names.
 - `"descriptive"` will someday display lengthier, Nethack-style sound descriptions (e.g. "You hear: a clanking noise | a distant scream | an explosion"), but it's still a work in progress and at the moment behaves identically to `"raw"`.
 
-Any unrecognized setting will be treated like `"symbolic"`.
+Any unrecognized setting will result in subtitles being disabled.
