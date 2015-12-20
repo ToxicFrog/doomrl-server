@@ -128,25 +128,7 @@ void Mix_FreeChunk(char * chunk) {
   free(chunk); // Caller relinquished ownership.
 }
 
-// It calls PlayChannelTimed, then volume, then panning
-
-// No support for volume or panning yet. DoomRL does this kind of awkwardly by
-// calling PlayChannelTimed first, and *then* calling Volume and SetPanning to
-// set distance and direction. I don't know if it's guaranteed that Volume and
-// SetPanning are called at all.
-
-// TODO: remember what volume each channel has and take that into account so that
-// the CC can display volume as well as sound.
-int32_t Mix_Volume(int32_t channel, int32_t volume) {
-  //report(10, 29, format!("Volume: {} at {}", channel, volume));
-  return volume;
-}
-
-// TODO: directionality of sound.
-int32_t Mix_SetPanning(int32_t channel, uint8_t left, uint8_t right) {
-  //report(10, 28, format!("Panning: {} L {} R {}", channel, left, right));
-  return 1;
-}
+//// Internal functions for actually recording and displaying sound events. ////
 
 uint8_t eventIsOld(const void * arg, SoundEvent * evt) {
   return state.turn - evt->turn >= 3;
@@ -186,23 +168,7 @@ void pushEvent(const char * sound) {
   state.last = evt;
 }
 
-int32_t Mix_PlayChannelTimed(int32_t channel, const char * chunk, int32_t loops, int32_t ticks) {
-  struct timespec now_ts;
-  clock_gettime(CLOCK_MONOTONIC, &now_ts);
-  double now = (double)now_ts.tv_sec + ((double)now_ts.tv_nsec / 1000000000.0);
-  double diff = now - state.then;
-
-  if (diff >= 0.1) {
-    state.turn++;
-    deleteEventsIf(eventIsOld, NULL);
-    // push soundevent containing | separator
-    pushEvent(SEPARATOR);
-  }
-
-  if (strlen(chunk)) {
-    pushEvent(chunk);
-  }
-
+void displaySounds() {
   SoundEvent * evt = state.last;
   char * heard = calloc(12, 1);
   strcpy(heard, HEADER);
@@ -220,6 +186,54 @@ int32_t Mix_PlayChannelTimed(int32_t channel, const char * chunk, int32_t loops,
     state.last_frame = heard;
   } else {
     free(heard);
+  }
+}
+
+//// SDL functions called by DoomRL to play sounds. ////
+
+// DoomRL calls Mix_PlayChannelTimed *first*, then calls Mix_Volume and
+// Mix_SetPanning immediately afterwards. It always calls all three of them
+// and always in this order, so we push the event when Mix_PlayChannelTimed is
+// called, then fill in volume and panning information afterwards, and display
+// the event after filling in panning information.
+
+// Volume is always between 0 (completely silent) and 128 (MIX_MAX_VOLUME). In
+// practice DoomRL never seems to go above 99.
+int32_t Mix_Volume(int32_t channel, int32_t volume) {
+  //fprintf(stderr, "volume: %d %d\n", channel, volume);
+  state.last->volume = volume;
+  return volume;
+}
+
+// left + right == 255, always
+// so, panning 255: all left, 0: all right, 127: directly north/south of the player
+int32_t Mix_SetPanning(int32_t channel, uint8_t left, uint8_t right) {
+  //fprintf(stderr, "panning: %d %d %d\n", channel, left, right);
+  state.last->panning = 255 - right;
+
+  // SetPanning is always called last for each sound effect, so at this point we
+  // have all the information we need and can display it.
+  displaySounds();
+
+  return 1;
+}
+
+int32_t Mix_PlayChannelTimed(int32_t channel, const char * chunk, int32_t loops, int32_t ticks) {
+  //fprintf(stderr, "PlayChannel %d %s\n", channel, chunk);
+  struct timespec now_ts;
+  clock_gettime(CLOCK_MONOTONIC, &now_ts);
+  double now = (double)now_ts.tv_sec + ((double)now_ts.tv_nsec / 1000000000.0);
+  double diff = now - state.then;
+
+  if (diff >= 0.1) {
+    state.turn++;
+    deleteEventsIf(eventIsOld, NULL);
+    // push soundevent containing | separator
+    pushEvent(SEPARATOR);
+  }
+
+  if (strlen(chunk)) {
+    pushEvent(chunk);
   }
 
   state.then = now;
