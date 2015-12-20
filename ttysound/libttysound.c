@@ -52,11 +52,14 @@ typedef struct SoundEvent {
   uint8_t panning;
   uint8_t volume;
   uint64_t turn;
-  struct SoundEvent * prev;
+  struct SoundEvent * next;
 } SoundEvent;
 
 struct State {
   SoundEvent * last;
+  SoundEvent * left;
+  SoundEvent * center;
+  SoundEvent * right;
   double then;
   uint64_t turn;
   char * last_frame;
@@ -71,7 +74,7 @@ const SDL_version * Mix_Linked_Version() {
 }
 
 int32_t Mix_OpenAudio(int32_t freq, uint16_t format, int32_t channels, int32_t chunksize) {
-  state.last = NULL;
+  state.left = state.center = state.right = state.last = NULL;
   state.then = 0.0;
   state.turn = 0;
   state.last_frame = calloc(1, 1); // we can't just point it at a string constant because it gets free()d later
@@ -130,8 +133,8 @@ void Mix_FreeChunk(char * chunk) {
 
 //// Internal functions for actually recording and displaying sound events. ////
 
-uint8_t eventIsOld(const void * arg, SoundEvent * evt) {
-  return state.turn - evt->turn >= 3;
+uint8_t constantlyTrue(const void * arg, SoundEvent * evt) {
+  return 1;
 }
 
 uint8_t eventIsEqual(const void * arg, SoundEvent * evt) {
@@ -140,44 +143,69 @@ uint8_t eventIsEqual(const void * arg, SoundEvent * evt) {
   return arg == evt->sound;
 }
 
-void deleteEventsIf(uint8_t (*pred)(const void *, SoundEvent *), const void * arg) {
-  // Pointer to the pointer to the event we're investigating. This needs to be
-  // updated if we delete the event.
-  SoundEvent ** prevptr = &state.last;
-  SoundEvent * evt = state.last;
+void deleteEventsIf(SoundEvent ** head,
+                    uint8_t (*pred)(const void *, SoundEvent *),
+                    const void * arg) {
+  SoundEvent * evt = *head;
   while (evt) {
     if (pred(arg, evt)) {
-      *prevptr = evt->prev;
+      *head = evt->next;
       free(evt);
-      evt = *prevptr;
     } else {
-      prevptr = &evt->prev;
+      head = &evt->next;
     }
-    evt = *prevptr;
+    evt = *head;
   }
 }
 
-// Clear all events that are duplicates of this one, then push this event.
-void pushEvent(const char * sound) {
-  deleteEventsIf(eventIsEqual, sound);
-  SoundEvent * evt = malloc(sizeof(SoundEvent));
-  evt->sound = sound;
-  evt->turn = state.turn;
-  evt->panning = evt->volume = 0;
-  evt->prev = state.last;
-  state.last = evt;
+void clearEvents() {
+  deleteEventsIf(&state.left, constantlyTrue, NULL);
+  deleteEventsIf(&state.center, constantlyTrue, NULL);
+  deleteEventsIf(&state.right, constantlyTrue, NULL);
+}
+
+// Install this event in the corresponding list.
+// If a duplicate of this event exists, but is louder, delete this event and return.
+// If a duplicate of this event exists, but is quieter, delete *that* event.
+// Then, insert the event into the list such that it is sorted by volume descending.
+void pushEvent(SoundEvent ** head, SoundEvent * new) {
+  new->next = *head;
+  *head = new;
+  return;
 }
 
 void displaySounds() {
-  SoundEvent * evt = state.last;
-  char * heard = calloc(12, 1);
-  strcpy(heard, HEADER);
+  //size_t size = 0;
+  char * heard = calloc(1,1);
+
+  SoundEvent * evt = state.left;
   while (evt) {
-    // +1 for null terminator, +1 for separating space
     heard = realloc(heard, strlen(heard) + strlen(evt->sound) + 2);
     strcat(heard, " ");
     strcat(heard, evt->sound);
-    evt = evt->prev;
+    evt = evt->next;
+  }
+
+  heard = realloc(heard, strlen(heard) + 5);
+  strcat(heard, " (( ");
+
+  evt = state.center;
+  while (evt) {
+    heard = realloc(heard, strlen(heard) + strlen(evt->sound) + 2);
+    strcat(heard, " ");
+    strcat(heard, evt->sound);
+    evt = evt->next;
+  }
+
+  heard = realloc(heard, strlen(heard) + 5);
+  strcat(heard, " )) ");
+
+  evt = state.right;
+  while (evt) {
+    heard = realloc(heard, strlen(heard) + strlen(evt->sound) + 2);
+    strcat(heard, " ");
+    strcat(heard, evt->sound);
+    evt = evt->next;
   }
 
   if (strcmp(heard, state.last_frame)) {
@@ -200,6 +228,8 @@ void displaySounds() {
 // Volume is always between 0 (completely silent) and 128 (MIX_MAX_VOLUME). In
 // practice DoomRL never seems to go above 99.
 int32_t Mix_Volume(int32_t channel, int32_t volume) {
+  if (!state.last) return volume;
+
   //fprintf(stderr, "volume: %d %d\n", channel, volume);
   state.last->volume = volume;
   return volume;
@@ -208,8 +238,19 @@ int32_t Mix_Volume(int32_t channel, int32_t volume) {
 // left + right == 255, always
 // so, panning 255: all left, 0: all right, 127: directly north/south of the player
 int32_t Mix_SetPanning(int32_t channel, uint8_t left, uint8_t right) {
+  if (!state.last) return 1;
   //fprintf(stderr, "panning: %d %d %d\n", channel, left, right);
   state.last->panning = 255 - right;
+
+  // Move event to the correct list.
+  SoundEvent ** headptr = &state.center;
+  if (state.last->panning >= 144) {
+    headptr = &state.left;
+  } else if (state.last->panning <= 112) {
+    headptr = &state.right;
+  }
+  pushEvent(headptr, state.last);
+  state.last = NULL;
 
   // SetPanning is always called last for each sound effect, so at this point we
   // have all the information we need and can display it.
@@ -226,17 +267,19 @@ int32_t Mix_PlayChannelTimed(int32_t channel, const char * chunk, int32_t loops,
   double diff = now - state.then;
 
   if (diff >= 0.1) {
+    clearEvents();
     state.turn++;
-    deleteEventsIf(eventIsOld, NULL);
-    // push soundevent containing | separator
-    pushEvent(SEPARATOR);
   }
 
   if (strlen(chunk)) {
-    pushEvent(chunk);
+    SoundEvent * evt = malloc(sizeof(SoundEvent));
+    evt->sound = chunk;
+    evt->turn = state.turn;
+    evt->panning = evt->volume = 0;
+    evt->next = NULL;
+    state.last = evt;
   }
 
   state.then = now;
   return 0;
 }
-
