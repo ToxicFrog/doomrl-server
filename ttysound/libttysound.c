@@ -11,16 +11,37 @@
 
 //// TTY display functions ////
 
-// Display a message on the given row.
+// Extremely quick and dirty function to calculate the display width, on a vt220,
+// of a cstring. Assumes that the only control sequences are CSI ... m and that
+// all ESC characters start a CSI.
+size_t vt220len(const char * str) {
+  size_t len = 0;
+  uint8_t nonprinting = 0;
+  for (size_t i = 0; str[i]; ++i) {
+    unsigned char c  = str[i];
+    if (c == '\x1B') {
+      nonprinting = 1;
+    } else if (nonprinting && c == 'm') {
+      nonprinting = 0;
+    } else if (!nonprinting) {
+      ++len;
+    }
+  }
+  return len;
+}
+
+// Display a message on the given row, centered.
 void emit_tty(uint8_t row, const char * msg) {
-  printf("\x1B[%d;1H\x1B[2K\x1B[0m%s", row, msg);
+  int padding = (80 - vt220len(msg))/2;
+  printf("\x1B[%d;1H\x1B[2K\x1B[0m%*s%s", row, padding, "", msg);
   fflush(stdout);
 }
 
 // Display a bold message on the given row for delay ms, then replace it with
 // a plain one.
 void report_tty(uint32_t delay, uint8_t row, const char * msg) {
-  printf("\x1B[%d;1H\x1B[2K\x1B[1m%s", row, msg);
+  int padding = (80 - vt220len(msg))/2;
+  printf("\x1B[%d;1H\x1B[2K\x1B[1m%*s%s", row, padding, "", msg);
   fflush(stdout);
   usleep(delay * 1000);
   emit_tty(row, msg);
@@ -42,7 +63,8 @@ void report_sdl(uint32_t unused_delay, uint8_t unused_row, const char * msg) {
 
 void (*emit)(uint8_t, const char *);
 void (*report)(uint32_t, uint8_t, const char *);
-const char * SEPARATOR;
+const char * LSEP;
+const char * RSEP;
 const char * HEADER;
 
 //// State ////
@@ -83,15 +105,15 @@ int32_t Mix_OpenAudio(int32_t freq, uint16_t format, int32_t channels, int32_t c
     // We're in graphical mode.
     emit = emit_sdl;
     report = report_sdl;
-    SEPARATOR = " | ";
-    HEADER = "You hear:";
-    report(500, 26, "You hear:  silence");
+    LSEP = " ((";
+    RSEP = " ))";
+    report(500, 26, "(( @ ))");
   } else {
     emit = emit_tty;
     report = report_tty;
-    SEPARATOR = "\x1B[1;37m|\x1B[0m";
-    HEADER = "  You hear:";
-    report(500, 26, "  You hear:  silence");
+    LSEP = " \x1B[1;37m((\x1B[0m";
+    RSEP = " \x1B[1;37m))\x1B[0m";
+    report(500, 26, "(( @ ))");
   }
 
   return 0;
@@ -172,37 +194,48 @@ void pushEvent(SoundEvent ** head, SoundEvent * new) {
   new->next = *head;
   *head = new;
   return;
+
+}
+
+// Given a chain of SoundEvents, calculate the total size, in bytes, + sepsize
+// bytes per event for a separator.
+size_t soundLength(SoundEvent * head, size_t sepsize) {
+  size_t len = 0;
+  while (head) {
+    len += strlen(head->sound) + sepsize;
+    head = head->next;
+  }
+  return len;
 }
 
 void displaySounds() {
-  //size_t size = 0;
-  char * heard = calloc(1,1);
+  size_t bytes = strlen(LSEP) + strlen(RSEP) + 1;
+
+  bytes += soundLength(state.left, 1)
+         + soundLength(state.center, 1)
+         + soundLength(state.right, 1);
+  char * heard = calloc(bytes, 1);
 
   SoundEvent * evt = state.left;
   while (evt) {
-    heard = realloc(heard, strlen(heard) + strlen(evt->sound) + 2);
     strcat(heard, " ");
     strcat(heard, evt->sound);
     evt = evt->next;
   }
 
-  heard = realloc(heard, strlen(heard) + 5);
-  strcat(heard, " (( ");
+  strcat(heard, LSEP);
 
   evt = state.center;
   while (evt) {
-    heard = realloc(heard, strlen(heard) + strlen(evt->sound) + 2);
     strcat(heard, " ");
     strcat(heard, evt->sound);
     evt = evt->next;
   }
 
-  heard = realloc(heard, strlen(heard) + 5);
-  strcat(heard, " )) ");
+  strcat(heard, RSEP);
 
   evt = state.right;
   while (evt) {
-    heard = realloc(heard, strlen(heard) + strlen(evt->sound) + 2);
     strcat(heard, " ");
     strcat(heard, evt->sound);
     evt = evt->next;
