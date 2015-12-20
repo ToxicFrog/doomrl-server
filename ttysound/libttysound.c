@@ -5,22 +5,45 @@
 #include <time.h>
 #include <string.h>
 
-#include "SDL_fake.h"
+#include <SDL/SDL.h>
+#include <SDL/SDL_version.h>
+#include <SDL/SDL_rwops.h>
+
+//// TTY display functions ////
 
 // Display a message on the given row.
-void emit(uint8_t row, const char * msg) {
+void emit_tty(uint8_t row, const char * msg) {
   printf("\x1B[%d;1H\x1B[2K\x1B[0m%s", row, msg);
   fflush(stdout);
 }
 
 // Display a bold message on the given row for delay ms, then replace it with
 // a plain one.
-void report(uint32_t delay, uint8_t row, const char * msg) {
+void report_tty(uint32_t delay, uint8_t row, const char * msg) {
   printf("\x1B[%d;1H\x1B[2K\x1B[1m%s", row, msg);
   fflush(stdout);
   usleep(delay * 1000);
-  emit(row, msg);
+  emit_tty(row, msg);
 }
+
+//// SDL display functions ////
+
+void emit_sdl(uint8_t unused_row, const char * msg) {
+  char * caption; char * icon;
+  SDL_WM_GetCaption(&caption, &icon);
+  SDL_WM_SetCaption(msg, icon);
+}
+
+void report_sdl(uint32_t unused_delay, uint8_t unused_row, const char * msg) {
+  emit_sdl(0, msg);
+}
+
+//// Function pointers ////
+
+void (*emit)(uint8_t, const char *);
+void (*report)(uint32_t, uint8_t, const char *);
+const char * SEPARATOR;
+const char * HEADER;
 
 //// State ////
 
@@ -52,7 +75,22 @@ int32_t Mix_OpenAudio(int32_t freq, uint16_t format, int32_t channels, int32_t c
   state.then = 0.0;
   state.turn = 0;
   state.last_frame = calloc(1, 1); // we can't just point it at a string constant because it gets free()d later
-  report(500, 26, "  You hear:  silence");
+
+  if (SDL_GetVideoSurface()) {
+    // We're in graphical mode.
+    emit = emit_sdl;
+    report = report_sdl;
+    SEPARATOR = " | ";
+    HEADER = "You hear:";
+    report(500, 26, "You hear:  silence");
+  } else {
+    emit = emit_tty;
+    report = report_tty;
+    SEPARATOR = "\x1B[1;37m|\x1B[0m";
+    HEADER = "  You hear:";
+    report(500, 26, "  You hear:  silence");
+  }
+
   return 0;
 }
 void Mix_CloseAudio() {}
@@ -158,7 +196,7 @@ int32_t Mix_PlayChannelTimed(int32_t channel, const char * chunk, int32_t loops,
     state.turn++;
     deleteEventsIf(eventIsOld, NULL);
     // push soundevent containing | separator
-    pushEvent("\x1B[1;37m|\x1B[0m");
+    pushEvent(SEPARATOR);
   }
 
   if (strlen(chunk)) {
@@ -167,7 +205,7 @@ int32_t Mix_PlayChannelTimed(int32_t channel, const char * chunk, int32_t loops,
 
   SoundEvent * evt = state.last;
   char * heard = calloc(12, 1);
-  strcpy(heard, "  You hear:");
+  strcpy(heard, HEADER);
   while (evt) {
     // +1 for null terminator, +1 for separating space
     heard = realloc(heard, strlen(heard) + strlen(evt->sound) + 2);

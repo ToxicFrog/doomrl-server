@@ -2,7 +2,7 @@
 
 A nethack.alt.org-inspired frontend for hosting a multiplayer DoomRL server. Players have personal save files, ranks, and player stats, but there is a shared high score list and games can be viewed by spectators.
 
-It has optional support for a web-based scoreboard and subtitles, too.
+It has optional support for a web-based scoreboard and closed captions, too.
 
 ## Installing doomrl-server
 
@@ -40,9 +40,9 @@ doomrl-server assumes that the directory containing the `doomrl-server` script i
 The DoomRL configuration files are located in `config/`; these override the default configs that come with DoomRL, which will be copied into each player's user directory. The default values should be fine, but you may want to look them over (for example, to enable a custom mod server). The `controls.lua`, `colours.lua`, and `user.lua` files are editable by the user via the `config` command; the `config.lua` file is appended to by doomrl-server at user registration time but otherwise static. Other files in that directory (such as `soundcc.lua`) are not user editable.
 
 
-## Enabling subtitle support
+## Enabling closed caption support
 
-`doomrl-server` supports subtitles, via loading a custom audio library. This support is automatically activated if the library is present. The library is included in the doomrl-server distribution.
+`doomrl-server` supports closed captions, via loading a custom audio library. This support is automatically activated if the library is present. The library is included in the doomrl-server distribution.
 
 To build it, you'll need a C compiler and `make` installed. (It has no library dependencies). Once you have those:
 
@@ -50,15 +50,15 @@ To build it, you'll need a C compiler and `make` installed. (It has no library d
 
 No further setup is needed (but some configuration settings are available; see below).
 
-For information on using subtitle support stand-alone (i.e. not as part of doomrl-server), see `ttysound/README.md`.
+For information on using closed caption support stand-alone (i.e. not as part of doomrl-server), see `ttysound/README.md`.
 
 ### Configuration
 
-In the config files that ship with doomrl-server, subtitle support, if available, is activated via the `DeafMode` setting (by analogy to `ColorBlindMode`). Setting it to `"raw"`, `"symbolic"`, or `"plain-symbolic"` will enable different representations of sound. Setting it to `"default"` will select the default setting for this server. Any other value will disable subtitles.
+In the config files that ship with doomrl-server, CC support, if available, is activated via the `DeafMode` setting (by analogy to `ColorBlindMode`). Setting it to `"default"` will select the default setting for this server. Other values select different CC styles or disable CC entirely.
 
 To change the default setting for new users, edit `user.lua`. To change the default setting for this server (i.e. what users get when they select `"default"`), edit `soundcc.lua`.
 
-If you want to change the way sounds are actually displayed in game, the subtitle files are in `config/cc`. Each sound is in its own file, in `config/cc/<subtitle type>/<creature type>/<event name>`. If you want to add a completely new subtitle type, make sure to also edit `soundcc.lua` -- the first few lines are what determine which subtitle types are recognized as valid.
+For more information on valid values for `DeafMode` and adding or editing CC styles, see `ttysound/README.md`
 
 
 ## Web Scoreboard

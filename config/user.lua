@@ -38,7 +38,7 @@ ColorBlindMode   = false
 -- If set to "raw", it will show you the raw event names.
 -- If set to "default", it will use the default setting for this server, usually
 -- "symbolic".
--- Any other setting will disable subtitles.
+-- Any other setting will disable closed captions.
 DeafMode         = "default"
 
 -- Setting to true will make old messages disappear from the screen

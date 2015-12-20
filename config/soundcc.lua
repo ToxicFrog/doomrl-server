@@ -2,10 +2,15 @@
 -- for an existing one.
 local styles = {
   default = 'symbolic';
+  tty = 'symbolic';
   symbolic = 'symbolic';
+
+  ['plain-symbolic'] = 'plain-symbolic';
+  titlebar = 'plain-symbolic';
+  sdl = 'plain-symbolic';
+
   raw = 'raw';
   descriptive = 'descriptive';
-  ['plain-symbolic'] = 'plain-symbolic';
 }
 
 local style = styles[DeafMode]

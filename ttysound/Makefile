@@ -1,6 +1,6 @@
-CFLAGS=-g -Wall -Werror -std=gnu99 -fPIC -shared
+CFLAGS=-g -Wall -Werror -std=gnu99 -fPIC -shared -lSDL
 
-libttysound.so: libttysound.c stubs.c SDL_fake.h
+libttysound.so: libttysound.c stubs.c
 	$(CC) $(CFLAGS) -o $@ $+
 
 clean:
