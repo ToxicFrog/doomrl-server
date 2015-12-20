@@ -7,8 +7,9 @@ It does not support the graphical version of DoomRL. It has only been tested on 
 ## Prerequisites
 
 - DoomRL, of course
-- Rust (specifically, the Rust build tool, `cargo`)
-- libSDL -- note that you don't need SDL_mixer or any other SDL library, just the base libSDL.
+- a C compiler, such as `gcc`
+- `make`
+- libSDL (but note that you don't need the SDL headers, or SDL_mixer)
 
 ## Installation.
 
@@ -22,7 +23,7 @@ It does not support the graphical version of DoomRL. It has only been tested on 
   You should end up with `soundcc.lua` and `cc/` in the same directory as `config.lua`, not in a `config/` subdirectory.
 - Build the subtitle library:
   - `cd ttysound`
-  - `cargo build`
+  - `make`
 
   If this works you should have a `ttysound/libttysound.so` file, and a `ttysound/libSDL_mixer-1.2.so.0` symlink pointing to it. The latter is what DoomRL will load.
 - Edit `config.lua` and add the following lines *at the bottom*:

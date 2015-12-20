@@ -42,11 +42,11 @@ The DoomRL configuration files are located in `config/`; these override the defa
 
 ## Enabling subtitle support
 
-`doomrl-server` supports subtitles, via loading a custom audio library. This support is automatically activated if the library is present. The library is written in Rust, and included in the doomrl-server distribution.
+`doomrl-server` supports subtitles, via loading a custom audio library. This support is automatically activated if the library is present. The library is included in the doomrl-server distribution.
 
-To build it, you'll need `cargo`, the Rust build tool, installed. Once you have that:
+To build it, you'll need a C compiler and `make` installed. (It has no library dependencies). Once you have those:
 
-    $ cd ttysound; cargo build
+    $ cd ttysound; make
 
 No further setup is needed (but some configuration settings are available; see below).
 
