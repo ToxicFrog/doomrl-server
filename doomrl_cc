@@ -5,4 +5,4 @@ export LD_LIBRARY_PATH=ttysound/
 export SDL_AUDIODRIVER=disk
 export SDL_DISKAUDIOFILE=/dev/null
 
-exec gnome-terminal --geometry=80x26  -e "./doomrl -console"
+exec ./doomrl "$@"
