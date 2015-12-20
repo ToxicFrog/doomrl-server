@@ -5,6 +5,7 @@ local styles = {
   symbolic = 'symbolic';
   raw = 'raw';
   descriptive = 'descriptive';
+  ['plain-symbolic'] = 'plain-symbolic';
 }
 
 local style = styles[DeafMode]

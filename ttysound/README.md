@@ -50,6 +50,7 @@ To turn them off completely, simply set `SoundEngine = "NONE"` in the configurat
 To change the style, change the value of the `DeafMode` setting. At the moment there are three supported styles:
 
 - `"symbolic"`, the default, displays 1-3 character symbols based on the existing monster symbols and visual effects.
+- `"plain-symbolic"` is identical to `"symbolic"`, but without colour codes; it's suitable for use in the title bar of the graphical version of DoomRL.
 - `"default"` is an alias for `"symbolic"`.
 - `"raw"` displays raw event names.
 - `"descriptive"` will someday display lengthier, Nethack-style sound descriptions (e.g. "You hear: a clanking noise | a distant scream | an explosion"), but it's still a work in progress and at the moment behaves identically to `"raw"`.
