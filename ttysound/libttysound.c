@@ -276,6 +276,7 @@ int32_t Mix_Volume(int32_t channel, int32_t volume) {
 // so, panning 255: all left, 0: all right, 127: directly north/south of the player
 int32_t Mix_SetPanning(int32_t channel, uint8_t left, uint8_t right) {
   if (!state.last) return 1;
+
   //fprintf(stderr, "panning: %d %d %d\n", channel, left, right);
   state.last->panning = 255 - right;
 
@@ -306,6 +307,7 @@ int32_t Mix_PlayChannelTimed(int32_t channel, const char * chunk, int32_t loops,
   if (diff >= max_delta) {
     clearEvents();
     state.turn++;
+    displaySounds();  // Clear the sound display.
   }
 
   if (strlen(chunk)) {
