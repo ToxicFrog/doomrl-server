@@ -161,6 +161,7 @@ void clearEvents() {
 // If a duplicate of this event exists, but is quieter, delete *that* event.
 // Then, insert the event into the list such that it is sorted by volume descending.
 void pushEvent(SoundEvent ** head, SoundEvent * new) {
+  deleteEventsIf(head, eventIsEqual, new->sound);
   new->next = *head;
   *head = new;
   return;
