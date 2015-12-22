@@ -9,6 +9,8 @@
 #include <SDL/SDL_version.h>
 #include <SDL/SDL_rwops.h>
 
+#define max(x, y) ((x > y) ? x : y)
+
 //// TTY display functions ////
 
 // Extremely quick and dirty function to calculate the display width, on a vt220,
@@ -31,38 +33,22 @@ size_t vt220len(const char * str) {
 }
 
 // Display a message on the given row, centered.
-void emit_tty(uint8_t row, const char * msg) {
-  int padding = (80 - vt220len(msg))/2;
-  printf("\x1B[%d;1H\x1B[2K\x1B[0m%*s%s", row, padding, "", msg);
+void emit_tty(uint8_t row, int col, const char * msg) {
+  printf("\x1B[%d;1H\x1B[2K\x1B[0m%*s%s", row, col, "", msg);
   fflush(stdout);
-}
-
-// Display a bold message on the given row for delay ms, then replace it with
-// a plain one.
-void report_tty(uint32_t delay, uint8_t row, const char * msg) {
-  int padding = (80 - vt220len(msg))/2;
-  printf("\x1B[%d;1H\x1B[2K\x1B[1m%*s%s", row, padding, "", msg);
-  fflush(stdout);
-  usleep(delay * 1000);
-  emit_tty(row, msg);
 }
 
 //// SDL display functions ////
 
-void emit_sdl(uint8_t unused_row, const char * msg) {
+void emit_sdl(uint8_t unused_row, int col, const char * msg) {
   char * caption; char * icon;
   SDL_WM_GetCaption(&caption, &icon);
   SDL_WM_SetCaption(msg, icon);
 }
 
-void report_sdl(uint32_t unused_delay, uint8_t unused_row, const char * msg) {
-  emit_sdl(0, msg);
-}
-
 //// Function pointers ////
 
-void (*emit)(uint8_t, const char *);
-void (*report)(uint32_t, uint8_t, const char *);
+void (*emit)(uint8_t, int, const char *);
 const char * LSEP;
 const char * RSEP;
 const char * HEADER;
@@ -104,16 +90,16 @@ int32_t Mix_OpenAudio(int32_t freq, uint16_t format, int32_t channels, int32_t c
   if (SDL_GetVideoSurface()) {
     // We're in graphical mode.
     emit = emit_sdl;
-    report = report_sdl;
     LSEP = " ((";
     RSEP = " ))";
-    report(500, 26, "(( @ ))");
+    emit(26, 36, "(( @ ))");
   } else {
     emit = emit_tty;
-    report = report_tty;
     LSEP = " \x1B[1;37m((\x1B[0m";
     RSEP = " \x1B[1;37m))\x1B[0m";
-    report(500, 26, "(( @ ))");
+    emit(26, 36, "\x1B[1m(( @ ))");
+    usleep(500 * 1000);
+    emit(26, 36, "(( @ ))");
   }
 
   return 0;
@@ -208,41 +194,35 @@ size_t soundLength(SoundEvent * head, size_t sepsize) {
   return len;
 }
 
-void displaySounds() {
-  size_t bytes = strlen(LSEP) + strlen(RSEP) + 1;
+void soundcat(char * str, SoundEvent * head) {
+  while (evt) {
+    strcat(str, " ");
+    strcat(str, evt->sound);
+    evt = evt->next;
+  }
+}
 
-  bytes += soundLength(state.left, 1)
-         + soundLength(state.center, 1)
-         + soundLength(state.right, 1);
+void displaySounds() {
+  size_t bytes = strlen(LSEP) + strlen(RSEP)
+               + soundLength(state.left, 1)
+               + soundLength(state.center, 1)
+               + soundLength(state.right, 1)
+               + 1; // null terminator
   char * heard = calloc(bytes, 1);
 
-  SoundEvent * evt = state.left;
-  while (evt) {
-    strcat(heard, " ");
-    strcat(heard, evt->sound);
-    evt = evt->next;
-  }
+  soundcat(heard, state.left);
+  size_t leftlen = vt220len(heard);
 
   strcat(heard, LSEP);
-
-  evt = state.center;
-  while (evt) {
-    strcat(heard, " ");
-    strcat(heard, evt->sound);
-    evt = evt->next;
-  }
-
+  soundcat(heard, state.center);
   strcat(heard, RSEP);
 
-  evt = state.right;
-  while (evt) {
-    strcat(heard, " ");
-    strcat(heard, evt->sound);
-    evt = evt->next;
-  }
+  size_t centerlen = vt220len(heard) - leftlen;
+
+  soundcat(heard, state.right);
 
   if (strcmp(heard, state.last_frame)) {
-    emit(26, heard);
+    emit(26, max(0, (80-centerlen)/2), heard);
     free(state.last_frame);
     state.last_frame = heard;
   } else {
