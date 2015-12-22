@@ -9,38 +9,17 @@
 #include <SDL/SDL_version.h>
 #include <SDL/SDL_rwops.h>
 
-#define max(x, y) ((x > y) ? x : y)
-
 //// TTY display functions ////
 
-// Extremely quick and dirty function to calculate the display width, on a vt220,
-// of a cstring. Assumes that the only control sequences are CSI ... m and that
-// all ESC characters start a CSI.
-size_t vt220len(const char * str) {
-  size_t len = 0;
-  uint8_t nonprinting = 0;
-  for (size_t i = 0; str[i]; ++i) {
-    unsigned char c  = str[i];
-    if (c == '\x1B') {
-      nonprinting = 1;
-    } else if (nonprinting && c == 'm') {
-      nonprinting = 0;
-    } else if (!nonprinting) {
-      ++len;
-    }
-  }
-  return len;
-}
-
-// Display a message on the given row, centered.
-void emit_tty(uint8_t row, int col, const char * msg) {
-  printf("\x1B[%d;1H\x1B[2K\x1B[0m%*s%s", row, col, "", msg);
+// Display a message on the given row.
+void emit_tty(uint8_t row, const char * msg) {
+  printf("\x1B[%d;1H\x1B[2K\x1B[0m%s", row, msg);
   fflush(stdout);
 }
 
 //// SDL display functions ////
 
-void emit_sdl(uint8_t unused_row, int col, const char * msg) {
+void emit_sdl(uint8_t unused_row, const char * msg) {
   char * caption; char * icon;
   SDL_WM_GetCaption(&caption, &icon);
   SDL_WM_SetCaption(msg, icon);
@@ -48,7 +27,9 @@ void emit_sdl(uint8_t unused_row, int col, const char * msg) {
 
 //// Function pointers ////
 
-void (*emit)(uint8_t, int, const char *);
+uint8_t tty_mode;  // bool. true if running in tty mode.
+double max_delta;  // max time between frames. 100ms for tty. 250ms for sdl.
+void (*emit)(uint8_t, const char *);
 const char * LSEP;
 const char * RSEP;
 const char * HEADER;
@@ -89,17 +70,20 @@ int32_t Mix_OpenAudio(int32_t freq, uint16_t format, int32_t channels, int32_t c
 
   if (SDL_GetVideoSurface()) {
     // We're in graphical mode.
+    tty_mode = 0;
+    max_delta = 0.25;
     emit = emit_sdl;
     LSEP = " ((";
     RSEP = " ))";
-    emit(26, 36, "(( @ ))");
+    emit(26, "(( @ ))");
   } else {
+    tty_mode = 1; max_delta = 0.1;
     emit = emit_tty;
     LSEP = " \x1B[1;37m((\x1B[0m";
     RSEP = " \x1B[1;37m))\x1B[0m";
-    emit(26, 36, "\x1B[1m(( @ ))");
+    emit(26, "                                     \x1B[1m(( @ ))");
     usleep(500 * 1000);
-    emit(26, 36, "(( @ ))");
+    emit(26, "                                     (( @ ))");
   }
 
   return 0;
@@ -183,6 +167,25 @@ void pushEvent(SoundEvent ** head, SoundEvent * new) {
 
 }
 
+// Extremely quick and dirty function to calculate the display width, on a vt220,
+// of a cstring. Assumes that the only control sequences are CSI ... m and that
+// all ESC characters start a CSI.
+size_t vt220len(const char * str) {
+  size_t len = 0;
+  uint8_t nonprinting = 0;
+  for (size_t i = 0; str[i]; ++i) {
+    unsigned char c  = str[i];
+    if (c == '\x1B') {
+      nonprinting = 1;
+    } else if (nonprinting && c == 'm') {
+      nonprinting = 0;
+    } else if (!nonprinting) {
+      ++len;
+    }
+  }
+  return len;
+}
+
 // Given a chain of SoundEvents, calculate the total size, in bytes, + sepsize
 // bytes per event for a separator.
 size_t soundLength(SoundEvent * head, size_t sepsize) {
@@ -221,12 +224,32 @@ void displaySounds() {
 
   soundcat(heard, state.right);
 
-  if (strcmp(heard, state.last_frame)) {
-    emit(26, max(0, (80-centerlen)/2), heard);
-    free(state.last_frame);
-    state.last_frame = heard;
+  size_t rightlen = vt220len(heard) - centerlen - leftlen;
+
+  char * frame;
+  if (tty_mode) {
+    int padding = ((leftlen + centerlen/2) >= 40) ? 0 : ((80-centerlen)/2 - leftlen);
+    frame = calloc(bytes + padding, 1);
+    snprintf(frame, bytes + padding, "%*s%s", padding, "", heard);
   } else {
-    free(heard);
+    // We want to center the (( )) in the title bar. Unfortunately, most WMs use
+    // proportional fonts, so we can't actually know how much padding is needed
+    // here. We assume that 3 spaces ~= 2 letters, which is mostly right most of
+    // the time on my machine. :(
+    int leftpadding = (leftlen >= rightlen) ? 0 : (rightlen - leftlen)*3/2;
+    int rightpadding = (rightlen >= leftlen) ? 0 : (leftlen - rightlen)*3/2;
+    frame = calloc(bytes + rightpadding + leftpadding, 1);
+    snprintf(frame, bytes + rightpadding + leftpadding, "%*s%s%*s",
+      leftpadding, "", heard, rightpadding, "");
+  }
+  free(heard);
+
+  if (strcmp(frame, state.last_frame)) {
+    emit(26, frame);
+    free(state.last_frame);
+    state.last_frame = frame;
+  } else {
+    free(frame);
   }
 }
 
@@ -279,7 +302,7 @@ int32_t Mix_PlayChannelTimed(int32_t channel, const char * chunk, int32_t loops,
   double now = (double)now_ts.tv_sec + ((double)now_ts.tv_nsec / 1000000000.0);
   double diff = now - state.then;
 
-  if (diff >= 0.1) {
+  if (diff >= max_delta) {
     clearEvents();
     state.turn++;
   }
