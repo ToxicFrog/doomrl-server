@@ -75,15 +75,15 @@ int32_t Mix_OpenAudio(int32_t freq, uint16_t format, int32_t channels, int32_t c
     emit = emit_sdl;
     LSEP = " ((";
     RSEP = " ))";
-    emit(26, "(( @ ))");
+    emit(26, "(( ))");
   } else {
     tty_mode = 1; max_delta = 0.1;
     emit = emit_tty;
     LSEP = " \x1B[1;37m((\x1B[0m";
     RSEP = " \x1B[1;37m))\x1B[0m";
-    emit(26, "                                     \x1B[1m(( @ ))");
+    emit(26, "                                      \x1B[1m(( ))");
     usleep(500 * 1000);
-    emit(26, "                                     (( @ ))");
+    emit(26, "                                      (( ))");
   }
 
   return 0;
