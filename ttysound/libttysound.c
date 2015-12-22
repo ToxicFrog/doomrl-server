@@ -194,7 +194,7 @@ size_t soundLength(SoundEvent * head, size_t sepsize) {
   return len;
 }
 
-void soundcat(char * str, SoundEvent * head) {
+void soundcat(char * str, SoundEvent * evt) {
   while (evt) {
     strcat(str, " ");
     strcat(str, evt->sound);
