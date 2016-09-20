@@ -53,17 +53,6 @@ Keybindings = {
   -- Commands for blind mode:
   ["X"]            = COMMAND_EXAMINENPC,
   ["SHIFT+X"]      = COMMAND_EXAMINEITEM,
-  -- QuickKeys
-  ["0"]     = function() command.quick_weapon('chainsaw') end,
-  ["1"]     = function() command.quick_weapon('knife') end,
-  ["2"]     = function() command.quick_weapon('pistol') end,
-  ["3"]     = function() command.quick_weapon('shotgun') end,
-  ["4"]     = function() command.quick_weapon('ashotgun') end,
-  ["5"]     = function() command.quick_weapon('dshotgun') end,
-  ["6"]     = function() command.quick_weapon('chaingun') end,
-  ["7"]     = function() command.quick_weapon('bazooka') end,
-  ["8"]     = function() command.quick_weapon('plasma') end,
-  ["9"]     = function() command.quick_weapon('bfg9000') end,
 
   -- Example of complex quickkeys
   ["SHIFT+N"]    = function()
