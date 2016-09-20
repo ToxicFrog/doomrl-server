@@ -36,3 +36,6 @@ QuickKeysUseCategories = true
 -- For example, to swap z and x:
 -- Keybinds["X"] = COMMAND_SWAPWEAPON
 -- Keybinds["Z"] = COMMAND_EXAMINENPC
+
+-- To unbind a key, set it to nil:
+-- Keybinds["SHIFT+M"] = nil
