@@ -35,3 +35,10 @@ COMMAND_GRIDTOGGLE        = 40;
 COMMAND_SOUNDTOGGLE       = 86;
 COMMAND_MUSICTOGGLE       = 87;
 
+-- Command aliases not built into DoomRL, but provided here for player convenience.
+function COMMAND_RELOAD() return command.reload() end
+function COMMAND_SPECIAL_RELOAD() return command.reload(true) end
+function COMMAND_QUIT() return command.quit() end
+function COMMAND_HELP() return command.help() end
+function COMMAND_MESSAGES() return command.messages() end
+function COMMAND_ASSEMBLIES() return command.assemblies() end
