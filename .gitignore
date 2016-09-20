@@ -1,0 +1,4 @@
+__pycache__/
+test/
+ttysound/libttysound.so
+*.sublime-*
