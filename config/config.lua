@@ -1,6 +1,8 @@
 
 -- COMMAND_* constants
 dofile "commands.lua"
+-- Default keybindings
+dofile "defaultcontrols.lua"
 
 -- user-defined settings
 dofile "colours.lua"
@@ -10,6 +12,9 @@ dofile "user.lua"
 ----------------------------------------------------------------------
 -- Master settings that are meant to override the user-specified ones.
 ----------------------------------------------------------------------
+
+-- QuickKey and numeric movement support, if the user asked for it in controls.lua
+dofile "quickkeys.lua"
 
 -- Graphics mode. Can be CONSOLE for raw console, or TILES for graphical
 -- tiles. Overriden by -graphics and -console command line parameters.

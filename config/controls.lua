@@ -1,89 +1,38 @@
-Keybindings = {
-	["LEFT"]         = COMMAND_WALKWEST,
-	["RIGHT"]        = COMMAND_WALKEAST,
-	["UP"]           = COMMAND_WALKNORTH,
-	["DOWN"]         = COMMAND_WALKSOUTH,
-	["PGUP"]         = COMMAND_WALKNE,
-	["PGDOWN"]       = COMMAND_WALKSE,
-	["HOME"]         = COMMAND_WALKNW,
-	["END"]          = COMMAND_WALKSW,
-	["ESCAPE"]       = COMMAND_ESCAPE,
-	["CENTER"]       = COMMAND_WAIT,
-	["PERIOD"]       = COMMAND_WAIT,
-	["BEGIN"]        = COMMAND_WAIT,
-	["ENTER"]        = COMMAND_OK,
-	["M"]            = COMMAND_MORE,
-	["SHIFT+PERIOD"] = COMMAND_ENTER,
-	["SHIFT+U"]      = COMMAND_UNLOAD,
-	["G"]            = COMMAND_PICKUP,
-	["D"]            = COMMAND_DROP,
-	["I"]            = COMMAND_INVENTORY,
-	["E"]            = COMMAND_EQUIPMENT,
-	["O"]            = COMMAND_OPEN,
-	["C"]            = COMMAND_CLOSE,
-	["L"]            = COMMAND_LOOK,
-	-- GRIDTOGGLE does nothing in console mode, so we bind space to be an alternate
-	-- ESCAPE instead. This is especially convenient because DoomRL has a long-
-	-- standing bug where you have to double-tap Esc in console mode before it
-	-- will register.
-	-- ["SPACE"]        = COMMAND_GRIDTOGGLE,
-	["SPACE"]        = COMMAND_ESCAPE,
-	["F"]            = COMMAND_FIRE,    -- function() command.fire() end,
-	["SHIFT+F"]      = COMMAND_ALTFIRE, -- function() command.fire( true ) end,
-	["R"]            = function() command.reload() end,
-	["SHIFT+R"]      = function() command.reload( true ) end,
-	["U"]            = COMMAND_USE,
-	["SHIFT+Q"]      = function() command.quit() end,
-	["SHIFT+SLASH"]  = function() command.help() end,
-	["SHIFT+2"]      = COMMAND_PLAYERINFO,
-	["SHIFT+S"]      = COMMAND_SAVE,
-	TAB              = COMMAND_TACTIC,
-	["COMMA"]        = COMMAND_RUNMODE,
-	["Z"]            = COMMAND_SWAPWEAPON,
---	F10       = function() command.screenshot() end, -- currently hardcoded
---	F9        = function() command.screenshot( true ) end,-- currently hardcoded
-	["T"]            = COMMAND_TRAITS,
-	["SHIFT+9"]      = COMMAND_SOUNDTOGGLE,
-	["SHIFT+0"]      = COMMAND_MUSICTOGGLE,
-	["SHIFT+P"]      = function() command.messages() end,
-	["SHIFT+A"]      = function() command.assemblies() end,
-	-- Commands for blind mode:
-	["X"]            = COMMAND_EXAMINENPC,
-	["SHIFT+X"]      = COMMAND_EXAMINEITEM,
-	-- QuickKeys
-	["0"]     = function() command.quick_weapon('chainsaw') end,
-	["1"]     = function() command.quick_weapon('knife') end,
-	["2"]     = function() command.quick_weapon('pistol') end,
-	["3"]     = function() command.quick_weapon('shotgun') end,
-	["4"]     = function() command.quick_weapon('ashotgun') end,
-	["5"]     = function() command.quick_weapon('dshotgun') end,
-	["6"]     = function() command.quick_weapon('chaingun') end,
-	["7"]     = function() command.quick_weapon('bazooka') end,
-	["8"]     = function() command.quick_weapon('plasma') end,
-	["9"]     = function() command.quick_weapon('bfg9000') end,
+-- Use 12346789 for movement and 5 to wait in place. This lets you play using
+-- the number pad even if numlock is on, and use 5 to wait, at the cost of not
+-- being able to use the number keys to switch weapons, since DoomRL can't tell
+-- the difference between the normal number keys and the numpad in tty mode.
+-- The default is on
+BindMovementToNumKeys = true
 
-	-- Alternate keypad controls. These require you to have numlock ON, and disable
-	-- the fast weapon switch keys above. The advantage is that it means you can
-	-- now use numpad 5 as a "wait" command.
-	["8"]     = COMMAND_WALKNORTH,
-	["9"]     = COMMAND_WALKNE,
-	["6"]     = COMMAND_WALKEAST,
-	["3"]     = COMMAND_WALKSE,
-	["2"]     = COMMAND_WALKSOUTH,
-	["1"]     = COMMAND_WALKSW,
-	["4"]     = COMMAND_WALKWEST,
-	["7"]     = COMMAND_WALKNW,
-	["5"]     = COMMAND_WAIT,
+-- Automatically set up weapon quickkeys.
+-- If set to 'num-keys', it'll set up the same bindings as stock DoomRL.
+-- If set to 'f-keys', it'll bind the quickkeys to F1-F8, F11, and F12 (F9 and
+-- F10 are hard-coded to "take screenshot").
+-- Any other value disables automatic QuickKey binding.
+-- The default is to use the f-keys if BindMovementToNumKeys is on, and use the
+-- num-keys otherwise.
+BindQuickKeysTo = BindMovementToNumKeys and 'f-keys' or 'num-keys'
 
-	-- Example of complex quickkeys
-	["SHIFT+N"]    = function()
-					if not command.use_item("smed") then
-						ui.msg("No small medpacks left!")
-					end
-				end,
-	["SHIFT+M"]    = function()
-					if not command.use_item("lmed") then
-						ui.msg("No large medpacks left!")
-					end
-				end,
-}
+-- Set up quickkeys to select weapon categories rather than individual weapons.
+-- If you set this option, rather than each key corresponding to a single weapon,
+-- it corresponds to a group of weapons. Pressing the key once will select the
+-- last weapon of that category you used; continuing to press will cycle through
+-- that category.
+-- Note that due to limitations in the DoomRL quickkey API, this will generate
+-- a lot of log spam every time you use it. It'll be hidden on the main screen
+-- but will show up in the full (shift-P) log.
+-- The categories are:
+-- 1 - melee
+-- 2 - pistols
+-- 3 - shotguns
+-- 4 - rapid fire
+-- 5 - explosive
+-- 6 - BFGs
+-- 7 - miscellaneous
+QuickKeysUseCategories = true
+
+-- Add any keybind overrides you want to this file.
+-- For example, to swap z and x:
+-- Keybinds["X"] = COMMAND_SWAPWEAPON
+-- Keybinds["Z"] = COMMAND_EXAMINENPC
