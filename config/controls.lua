@@ -35,7 +35,7 @@ QuickKeysUseCategories = true
 -- Add any keybind overrides you want to this file.
 -- For example, to swap z and x:
 -- bind {
---	 X = COMMAND_SWAPWEAPON;
+--   X = COMMAND_SWAPWEAPON;
 --   Z = COMMAND_EXAMINENPC;
 -- }
 
