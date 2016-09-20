@@ -66,3 +66,16 @@ Keybindings = {
           end
         end,
 }
+
+function unbind(key, ...)
+  if key then
+    Keybindings[key] = nil
+    return unbind(...)
+  end
+end
+
+function bind(keys)
+  for key,command in pairs(keys) do
+    Keybindings[key] = command
+  end
+end
