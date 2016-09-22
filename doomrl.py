@@ -172,7 +172,7 @@ def show_scores(scores, time='time'):
 
 # Website structure:
 # www/index.html: top N scores and top killers
-# www/players.html: list of players with K/D ratio for each, click for specific player
+# www/players/index.html: list of players with K/D ratio for each, click for specific player
 # www/players/<name>/index.html: page listing all of that player's games
 # www/players/<name>/<index>.{mortem,ttyrec}: postmortem and ttyrec files
 # www/players/<name>/<name>.zip: archive of all postmortem and ttyrec files
@@ -223,12 +223,14 @@ def build_website(www):
     os.makedirs(join(www, 'players'))
   with open(join(www, 'players', 'index.html'), 'w') as fd:
     fd.write(_HEADER)
-    fd.write('     wins/total\n')
+    fd.write('wins / total\n')
     for user in all_users():
       # create/update per-player directory
       user_games = build_website_for_user(www, user)
+      if not len(user_games):
+        continue
       all_games += user_games
-      fd.write('[   ] %3d/%-3d <a href="%s/index.html">%s</a>\n' % (
+      fd.write(' %3d / %-3d  <a href="%s/index.html">%s</a>\n' % (
         len([g for g in user_games if winner(g)]),
         len(user_games),
         user,
