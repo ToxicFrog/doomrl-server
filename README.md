@@ -13,6 +13,7 @@ Before you can run it, DoomRL-server has a number of requirements:
 - `reset`
 - `less`
 - `nano`
+- `websockify` (optional; for web client support)
 - and DoomRL itself.
 
 Python, `nano`, and `less` are commonly installed by default. `reset` is likely to be as well, and if not is generally part of curses (the `ncurses-utils` package on SUSE, for example). `ttyrec` may need to be specifically installed.
@@ -71,6 +72,11 @@ The scoreboard homepage is prefaced with the contents of the `webmotd` file. You
 
 If you're using thttpd as the web server, sample configuration files are also provided. `thttp.conf` is the configuration file for the web server itself; `thttpd-doomrl.service` is a systemd service file for running it. You should read and edit both of them, as they make some assumptions that may not be correct (for example, they assume that doomrl-server is installed in `/var/lib/doomrl/`, and that you want to serve the scoreboard on port 8666).
 
+### The web terminal
+
+doomrl-server comes with a web-based telnet client, based on XTerm2.js and Websockify. It's available in `www/tty.html`; if you want to make it a bit more discoverable for your users, consider adding a link to it to the `webmotd`.
+
+In order for it to work, you'll need a Websockify proxy running between doomrl-server and the browser. `websockify-doomrl.service` is a systemd unit file that will set this up, assuming you have `websockify` installed.
 
 ## Directories
 

@@ -1,0 +1,9 @@
+[Unit]
+Description=Websockify telnet proxy for DoomRL-server
+
+[Service]
+ExecStart=/usr/bin/websockify --auto-pong 3667 localhost:3666
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
