@@ -10,7 +10,6 @@ Before you can run it, DoomRL-server has a number of requirements:
 
 - Python 3.3+
 - `ttyrec`, `ttytime`, and `ttyplay`
-- `reset`
 - `less`
 - `nano`
 - `websockify` (optional; for web client support)

@@ -120,6 +120,16 @@ class TTYRec(object):
       if not data:
         break
       self.write(s, us, len(data), data)
+def resetTerm():
+  # 'tput reset' on xterm sends this:
+  # '\x1Bc\x1B[!p\x1B[?3;4l\x1B[4l\x1B>'
+  # ESC c        : full reset
+  # CSI ! p      : soft terminal reset
+  # CSI ? 3;4 l  : 80 column mode; fast scrolling
+  # CSI 4 l      : reset replace mode
+  # ESC >        : normal keypad mode
+  # Of these we probably only need the first two.
+  os.write(1, '\x1Bc\x1B[!p'.encode('ascii'))
 
 commands = {}
 class CommandRegistration(type):
@@ -401,7 +411,7 @@ class PlayCommand(Command):
       # If something went wrong while playing DoomRL, the terminal is probably
       # completely hosed and there may still be processes running in the
       # background. Nothing to do here but die and hope the SIGHUP gets them.
-      subprocess.call(['reset'])
+      resetTerm()
       if doomrl.debug():
         raise e
       print('Fatal error running DoomRL:', e)
@@ -525,7 +535,7 @@ class WatchCommand(Command):
       pass
     finally:
       # ttyplay may leave the terminal messed up. This fixes it.
-      subprocess.call(['reset'])
+      resetTerm()
 
 class ScoresCommand(Command):
   """scores [player] -- show high score list
@@ -611,7 +621,7 @@ class ReplayCommand(Command):
       pass
     finally:
       # ttyplay may leave the terminal messed up. This fixes it.
-      subprocess.call(['reset'])
+      resetTerm()
 
 class MortemCommand(Command):
   """mortem <player> <number> -- view a postmortem
