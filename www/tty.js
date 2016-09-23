@@ -30,6 +30,10 @@ function centerTerminal() {
 
 function connected(telnet, tty) {
   console.log('Connected!')
+  if (DOOMRL_COMMAND) {
+    // Wait 250ms for initial negotiation with the server to complete.
+    setTimeout(function() { telnet.sendStr(DOOMRL_COMMAND) }, 250);
+  }
 }
 
 function disconnected(telnet, tty) {
@@ -42,3 +46,4 @@ console.log(DOOMRL_HOST)
 var telnet = Telnet(createTerminal(), connected, disconnected);
 telnet.connect(DOOMRL_HOST, DOOMRL_WS_PORT, false)
 setTimeout(centerTerminal, 100)
+

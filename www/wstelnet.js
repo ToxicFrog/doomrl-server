@@ -145,8 +145,6 @@ function do_recv() {
     //console.log("<< do_recv");
 }
 
-
-
 that.connect = function(host, port, encrypt) {
     var host = host,
         port = port,
@@ -171,6 +169,11 @@ that.connect = function(host, port, encrypt) {
     ws.open(uri);
 
     Util.Debug("<< connect");
+}
+
+that.sendStr = function(str) {
+    sQ.pushStr(str);
+    do_send();
 }
 
 that.disconnect = function() {
