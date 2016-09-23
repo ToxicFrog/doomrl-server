@@ -15,10 +15,10 @@ BindMovementToNumKeys = true
 BindQuickKeysTo = BindMovementToNumKeys and 'f-keys' or 'num-keys'
 
 -- Set up quickkeys to select weapon categories rather than individual weapons.
--- If you set this option, rather than each key corresponding to a single weapon,
--- it corresponds to a group of weapons. Pressing the key once will select the
--- last weapon of that category you used; continuing to press will cycle through
--- that category.
+-- If you set this option, rather than each key corresponding to a single
+-- weapon, it corresponds to a group of weapons. Pressing the key once will
+-- select the last weapon of that category you used; continuing to press will
+-- cycle through the weapons in that category.
 -- Note that due to limitations in the DoomRL quickkey API, this will generate
 -- a lot of log spam every time you use it. It'll be hidden on the main screen
 -- but will show up in the full (shift-P) log.

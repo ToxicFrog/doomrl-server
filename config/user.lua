@@ -5,9 +5,9 @@ AllowHighAscii   = false
 -- Specifies wether items in inventory and equipment should be colored
 ColoredInventory = true
 
--- Menu styles can be LETTER for letter choince only menus, CHOICE for only arrow
--- selection or HYBRID for both. Note that additional commands (like BACKSPACE for
--- in-menu drop and TAB for swap) wont work in the LETTER mode.
+-- Menu styles can be LETTER for letter choince only menus, CHOICE for only
+-- arrow selection or HYBRID for both. Note that additional commands (like
+-- BACKSPACE for in-menu drop and TAB for swap) wont work in the LETTER mode.
 InvMenuStyle     = "HYBRID"
 EqMenuStyle      = "HYBRID"
 HelpMenuStyle    = "HYBRID"
@@ -66,12 +66,13 @@ EmptyConfirm     = false
 -- to use the game, you can safely turn it off!
 Hints            = true
 
--- Sets the delay value when running. Value is in milliseconds. Set to 0 for no delay.
+-- Sets the delay between steps when running. Value is in milliseconds. Set to
+-- 0 for no delay.
 RunDelay         = 20
 
--- Handles what should be done in case of trying to unwield an item when inventory
--- is full : if set to false will ask the player if he wants to drop it. If set
--- to true will drop it without questions.
+-- Handles what should be done in case of trying to unwield an item when
+-- inventory is full : if set to false will ask the player if they want to drop
+-- it. If set to true will drop it without questions.
 InvFullDrop      = false
 
 -- Messages held in the message buffer.
