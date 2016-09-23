@@ -59,6 +59,8 @@ def main():
 
   if exists(doomrl.path('motd')):
     print(open(doomrl.path('motd')).read())
+  else:
+    print(open(doomrl.path('motd.default')).read())
 
   (cols, rows) = shutil.get_terminal_size()
   min_rows = 26 if exists(doomrl.path('ttysound', 'libSDL_mixer-1.2.so.0')) else 25

@@ -239,7 +239,10 @@ def build_website(www):
   # create/update master index
   all_games.sort(reverse=True, key=lambda s: int(s['score']))
   with open(join(www, 'index.html'), 'w') as fd:
-    fd.write(open(path('webmotd'), 'r').read())
+    if exists(path('webmotd')):
+      fd.write(open(path('webmotd'), 'r').read())
+    else:
+      fd.write(open(path('webmotd.default'), 'r').read())
     fd.write(_HEADER)
     fd.write('<hr>\n<div style="text-align:center">'
              '[<a href="players/index.html">By Player</a>]'
