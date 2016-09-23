@@ -42,10 +42,6 @@ class TTYRec(object):
   def __init__(self, path):
     self.path = path
 
-    import tty
-    tty.setraw(stdout)
-    tty.setcbreak(stdout)
-
   def __enter__(self):
     return self
 

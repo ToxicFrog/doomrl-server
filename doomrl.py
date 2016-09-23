@@ -7,7 +7,6 @@ import re
 import subprocess
 import xml.etree.ElementTree as etree
 
-from datetime import timedelta
 from os.path import join,isdir,exists
 from collections import defaultdict
 
