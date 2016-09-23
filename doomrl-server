@@ -418,7 +418,7 @@ class WatchCommand(Command):
       print('   TIME PLAYER')
       for player in doomrl.all_users():
         if exists(doomrl.home('ttyrec', user=player)):
-          time = subprocess.check_output(['ttytime', 'ttyrec'], cwd=doomrl.home(user=player)).split()[0]
+          time = int(TTYRec(path=doomrl.home('ttyrec', user=player)).ttytime()[0])
           print("%7s %s" % (str(timedelta(seconds=int(time))), player))
       return
 
@@ -607,10 +607,10 @@ class RebuildCommand(Command):
           game['time'] = mortem['time']
         if game.get('ttytime', None) is None:
           if exists(doomrl.home('archive', '%d.ttyrec' % game['n'], user=player)):
-            ttytime = subprocess.check_output(
-              ['ttytime', 'archive/%d.ttyrec' % game['n']],
-              cwd=doomrl.home(user=player)).split()[0]
-            game['ttytime'] = int(ttytime)
+            game['ttytime'] = int(TTYRec(
+              path=doomrl.home('archive/%d.ttyrec' % game['n'],
+                               user=player)
+              ).ttytime()[0])
           else:
             game['ttytime'] = 0  # no replay available
       with open(doomrl.home('archive', 'scores', user=player), "w") as fd:
