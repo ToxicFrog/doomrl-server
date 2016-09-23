@@ -9,7 +9,7 @@ It has optional support for a web-based scoreboard and closed captions, too.
 Before you can run it, DoomRL-server has a number of requirements:
 
 - Python 3.3+
-- `ttyrec`, `ttytime`, and `ttyplay`
+- `ttyplay`
 - `less`
 - `nano`
 - `websockify` (optional; for web client support)
