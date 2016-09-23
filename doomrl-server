@@ -61,10 +61,15 @@ def main():
     print(open(doomrl.path('motd')).read())
 
   (cols, rows) = shutil.get_terminal_size()
-  if int(rows) < 25 or int(cols) < 80:
-    print("Warning: your terminal size (%sx%s) is smaller than the 80x25"
+  min_rows = 26 if exists(doomrl.path('ttysound', 'libSDL_mixer-1.2.so.0')) else 25
+  if int(rows) == 0 and int(cols) == 0:
+    # Couldn't determine terminal size. Hopefully this means they're using the
+    # web interface.
+    pass
+  elif int(rows) < min_rows or int(cols) < 80:
+    print("Warning: your terminal size (%sx%s) is smaller than the 80x%d"
           " needed by DoomRL. The 'play', 'replay', and 'watch' commands"
-          " may not work correctly." % (cols, rows))
+          " may not work correctly." % (cols, rows, min_rows))
 
   while True:
     try:
