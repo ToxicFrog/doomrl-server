@@ -66,9 +66,16 @@ function do_recv() {
             case 253: // DO
                 Util.Debug("Got Cmd DO '" + value + "'");
                 if (value === 24) {
-                    // Terminal type
+                    // 24: terminal type
                     Util.Info("Send WILL '" + value + "' (TERM-TYPE)");
                     sQ.push(255, 251, value);
+                } else if (value === 31) {
+                    // 31: window size
+                    Util.Info("Send WILL '" + value + "' (WIN-SIZE)");
+                    sQ.push(255, 251, value);
+                    // Immediately follow up by reporting our window size.
+                    // IAC SB NAWS uint16_t(cols) uint16_t(rows) IAC SE
+                    sQ.push(255, 250, 31, 0, tty.cols, 0, tty.rows, 255, 240)
                 } else {
                     // Refuse other DO requests with a WONT
                     Util.Debug("Send WONT '" + value + "'");
@@ -95,8 +102,8 @@ function do_recv() {
                 break;
             case 250: // SB (subnegotiation)
                 if (value === 24) {
-                    Util.Info("Got IAC SB TERM-TYPE SEND(1) IAC SE");
                     // TERM-TYPE subnegotiation
+                    Util.Info("Got IAC SB TERM-TYPE SEND(1) IAC SE");
                     if (arr[0] === 1 &&
                         arr[1] === 255 &&
                         arr[2] === 240) {
@@ -186,7 +193,7 @@ function constructor() {
     ws.on('open', function(e) {
         Util.Info(">> WebSockets.onopen");
         //vt100.curs_set(true, true);
-        connect_callback(this, tty);
+        connect_callback(that, tty);
         Util.Info("<< WebSockets.onopen");
     });
     ws.on('close', function(e) {

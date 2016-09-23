@@ -65,13 +65,12 @@ def main():
   (cols, rows) = shutil.get_terminal_size()
   min_rows = 26 if exists(doomrl.path('ttysound', 'libSDL_mixer-1.2.so.0')) else 25
   if int(rows) == 0 and int(cols) == 0:
-    # Couldn't determine terminal size. Hopefully this means they're using the
-    # web interface.
-    pass
+    print("Warning: couldn't detect terminal size. Please make sure your terminal"
+          " is at least 80x%d or the game will not display correctly." % min_rows)
   elif int(rows) < min_rows or int(cols) < 80:
     print("Warning: your terminal size (%sx%s) is smaller than the 80x%d"
-          " needed by DoomRL. The 'play', 'replay', and 'watch' commands"
-          " may not work correctly." % (cols, rows, min_rows))
+          " needed by DoomRL. The game will not display correctly."
+          % (cols, rows, min_rows))
 
   while True:
     try:
