@@ -276,9 +276,9 @@ class PlayCommand(Command):
     child = subprocess.Popen(cmd, stdout=wpipe, env=env, cwd=doomrl.home())
     os.close(wpipe)
 
-    with TTYRec(rpipe, self.recfile) as rec:
+    with TTYRec(self.recfile) as rec:
       # This will return when DoomRL closes the fd.
-      rec.wait()
+      rec.ttyrec(in_fd=rpipe)
     child.wait()
 
   def run(self, name):
