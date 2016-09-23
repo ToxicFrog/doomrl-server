@@ -2,8 +2,13 @@ $ = function(sel) { return  document.querySelector(sel) };
 
 // Stub out the websockify Util library.
 Util = {}
-Util.Debug = function() {};
-Util.Info = function() {};
+if (DOOMRL_DEBUG) {
+  Util.Debug = console.log;
+  Util.Info = console.log;
+} else {
+  Util.Debug = function() {};
+  Util.Info = function() {};
+}
 Util.Warn = console.log;
 Util.Error = console.log;
 
@@ -20,14 +25,11 @@ function createTerminal() {
 function centerTerminal() {
   var terminalContainer = $('#terminal-div');
   var rows = $(".xterm-rows");
-  console.log("Container width: ", terminalContainer.offsetWidth)
-  console.log("TTY width: ", rows.getBoundingClientRect().width)
   rows.style.left = Math.floor((terminalContainer.offsetWidth - rows.offsetWidth)/2) + "px";
 }
 
-function connected() {
-  console.log('Connected!');
-//  centerTerminal();
+function connected(telnet, tty) {
+  console.log('Connected!')
 }
 
 function disconnected(telnet, tty) {
