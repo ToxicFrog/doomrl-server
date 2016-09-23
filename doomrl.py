@@ -175,8 +175,14 @@ def show_scores(scores, time='time'):
 # www/players/<name>/index.html: page listing all of that player's games
 # www/players/<name>/<index>.{mortem,ttyrec}: postmortem and ttyrec files
 # www/players/<name>/<name>.zip: archive of all postmortem and ttyrec files
-_HEADER = '<div style="text-align:center;"><pre style="text-align:left; display:inline-block;">'
-_FOOTER = '</pre></div>'
+_HEADER = (
+  '<html><head>'
+  '<style>a:link { color: #0080FF; } a:visited { color: #8000FF };</style>'
+  '<title>DoomRL</title></head>'
+  '</head><body style="color: #FFFFFF; background-color: #000000;">'
+  '<div style="text-align:center;">'
+  '<pre style="text-align:left; display:inline-block;">')
+_FOOTER = '</pre></div></body></html>'
 
 def path_to(user, type, game):
   return home('archive', '%d.%s' % (game['n'], type), user=user)
@@ -239,11 +245,11 @@ def build_website(www):
   # create/update master index
   all_games.sort(reverse=True, key=lambda s: int(s['score']))
   with open(join(www, 'index.html'), 'w') as fd:
+    fd.write(_HEADER)
     if exists(path('webmotd')):
       fd.write(open(path('webmotd'), 'r').read())
     else:
       fd.write(open(path('webmotd.default'), 'r').read())
-    fd.write(_HEADER)
     fd.write('<hr>\n<div style="text-align:center">'
              '[<a href="players/index.html">By Player</a>]'
              '[<a href="deaths.html">Top Deaths</a>]'
