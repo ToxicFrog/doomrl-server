@@ -208,7 +208,7 @@ def build_website_for_user(www, user):
         else:
           fd.write('[   ]')
         if link_to(www, user, '%d.ttyrec' % game['n']):
-          fd.write('[<a href="%d.ttyrec">TTY</a>]' % game['n'])
+          fd.write('[<a href="../../replay.html#%s/%d">TTY</a>]' % (user, game['n']))
         else:
           fd.write('[   ]')
         fd.write(scoreline(game, bold='<b>', bold_eol='</b>') + '\n')
@@ -256,7 +256,7 @@ def build_website(www):
       else:
         fd.write('[   ]')
       if exists(join(www, 'players', user, '%d.ttyrec' % n)):
-        fd.write('[<a href="replay.html#%s %d">TTY</a>]' % (user, n))
+        fd.write('[<a href="replay.html#%s/%d">TTY</a>]' % (user, n))
       else:
         fd.write('[   ]')
       fd.write(scoreline(game, bold='<b>', bold_eol='</b>') + '\n')

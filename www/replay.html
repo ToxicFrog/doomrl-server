@@ -21,7 +21,7 @@ s: slower
     </div>
     <script>
       var $ = function(sel) { return  document.querySelector(sel) };
-      var [_, player, game] = window.location.hash.match("#(.*?) ([0-9]+)");
+      var [_, player, game] = window.location.hash.match("#(.*?)/([0-9]+)");
       $("#download-link").href = "players/"+player+"/"+game+".ttyrec";
 
       // Hostname to connect to.
