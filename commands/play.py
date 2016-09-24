@@ -97,15 +97,16 @@ class PlayCommand(Command):
     try:
       self.run_doomrl()
     except Exception as e:
+      import traceback
+      log('Error running DoomRL: ' + traceback.format_exc())
       # If something went wrong while playing DoomRL, the terminal is probably
       # completely hosed and there may still be processes running in the
       # background. Nothing to do here but die and hope the SIGHUP gets them.
       resetTerm()
-      if doomrl.debug():
-        raise e
-      print('Fatal error running DoomRL:', e)
+      traceback.print_exc()
       sys.exit(1)
     finally:
+      resetTerm()
       self.shutdown(name, scores, mortem)
 
   def shutdown(self, name, scores_before, mortem_before):

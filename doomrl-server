@@ -90,7 +90,7 @@ def main():
       pass
     except Exception as e:
       import traceback
-      log(traceback.format_exc())
+      log('Unhandled exception in mainloop: ' + traceback.format_exc())
       resetTerm()
       print('\rError in mainloop: %s' % str(e))
       traceback.print_exc()
