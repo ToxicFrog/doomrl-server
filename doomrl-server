@@ -89,10 +89,11 @@ def main():
     except KeyboardInterrupt:
       pass
     except Exception as e:
-      log('Unhandled exception in mainloop: %s' % str(e))
-      print('Error in mainloop: %s' % str(e))
-      if doomrl.debug() or True:
-        raise e
+      import traceback
+      log(traceback.format_exc())
+      resetTerm()
+      print('\rError in mainloop: %s' % str(e))
+      traceback.print_exc()
 
   if doomrl.user():
     log('User %s logged out.' % doomrl.user())
