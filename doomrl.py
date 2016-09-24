@@ -99,32 +99,37 @@ angels = {
   'Overconfidence': 'AoOC',
 }
 
+matchers = {
+  r' ([^,]+), level (\d+) .* (Marine|Scout|Technician),':
+  lambda name, level, klass: { 'name': name, 'level': int(level), 'klass': klass },
+
+  r' He survived \d+ turns and scored (\d+) points\.':
+  lambda score: { 'score': int(score) },
+
+  r' He played for (?:(\d+) day)?.*?(?:(\d+) hour)?.*?(?:(\d+) minute)?.*?(?:(\d+) seconds?)?\.':
+  lambda d, h, m, s: { 'time': ((int(d or 0) * 24 + int(h or 0)) * 60 + int(m or 0)) * 60 + int(s or 0) },
+
+  r' He was an Angel of (.*)!':
+  lambda challenge: { 'challenge': angels[challenge] },
+
+  r' He was also an Angel of (.*)!':
+  lambda challenge: { 'challenge2': angels[challenge] },
+
+  r' was .* by (?:a|an|the) (.*) (?:on level|at the)':
+  lambda killer: { 'killed': killer },
+}
+
 def parse_mortem(n, user=None):
   data = open(home('archive', '%d.mortem' % n, user=user), 'r').read().split('\n')
   mortem = {}
 
   for line in data:
-    match = re.match(r" ([^,]+), level (\d+) .* (Marine|Scout|Technician),", line)
-    if match:
-      (mortem['name'], mortem['level'], mortem['klass']) = match.groups()
-      continue
-    match = re.match(r' He survived \d+ turns and scored (\d+) points\.', line)
-    if match:
-      mortem['score'] = int(match.group(1))
-      continue
-    match = re.match(r' He played for (?:(\d+) day)?.*?(?:(\d+) hour)?.*?(?:(\d+) minute)?.*?(?:(\d+) seconds?)?\.', line)
-    if match:
-      (d,h,m,s) = match.groups()
-      mortem['time'] = ((int(d or 0) * 24 + int(h or 0)) * 60 + int(m or 0)) * 60 + int(s or 0)
-      continue
-    match = re.match(r' He was an Angel of (.*)!', line)
-    if match:
-      mortem['challenge'] = angels[match.group(1)]
-      continue
-    match = re.match(r' was .* by (a|an|the) (.*) (on level|at the)', line)
-    if match:
-      mortem['killed'] = match.group(2)
-      continue
+    for regex,handler in matchers.items():
+      match = re.match(regex, line)
+      if match:
+        mortem.update(handler(*match.groups()))
+        break
+
   return mortem
 
 def games(user=None):
@@ -142,7 +147,7 @@ def winner(game):
 
 def scoreline(game, time='time', bold='\x1B[1m', bold_eol='\x1B[0m'):
   seconds = game.get(time, 0)
-  return '%s%4d | %02d:%02d:%02d %-2s%7d %-14s %sL:%-2d %-33s DL%-2d %s%s' % (
+  return '%s%4d | %02d:%02d:%02d %-2s%7d %-14s %sL:%-2d %-33s DL%-2d %s %s%s' % (
     winner(game) and bold or '',
     game['n'],
     seconds // 60 // 60,
@@ -156,6 +161,7 @@ def scoreline(game, time='time', bold='\x1B[1m', bold_eol='\x1B[0m'):
     game['killed'],
     game['depth'],
     game.get('challenge', ''),
+    game.get('challenge2', ''),
     winner(game) and bold_eol or '')
 
 def show_scores(scores, time='time'):
