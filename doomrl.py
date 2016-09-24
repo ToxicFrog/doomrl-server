@@ -101,7 +101,7 @@ angels = {
 
 matchers = {
   r' ([^,]+), level (\d+) .* (Marine|Scout|Technician),':
-  lambda name, level, klass: { 'name': name, 'level': int(level), 'klass': klass },
+  lambda name, level, klass: { 'level': int(level), 'klass': klass },
 
   r' He survived \d+ turns and scored (\d+) points\.':
   lambda score: { 'score': int(score) },
@@ -115,13 +115,19 @@ matchers = {
   r' He was also an Angel of (.*)!':
   lambda challenge: { 'challenge2': angels[challenge] },
 
-  r' was .* by (?:a|an|the) (.*) (?:on level|at the)':
-  lambda killer: { 'killed': killer },
+  r' was (?:.*) by ((?:a|an|the) .*) (?:on level|at the)':
+  lambda killer: { 'killed': "killed by " + killer },
+
+  r" (?:got too close to a (Cacodemon)|couldn't evade a (revenant)'s fireball|rode a (Mancubus) rocket)":
+  lambda k1, k2, k3: { 'killed': "killed by a " + (k1 or k2 or k3) },
+
+  r'  Then finally in Hell itself, he killed the final EVIL\.':
+  lambda: { 'killed': 'nuked the Mastermind' },
 }
 
 def parse_mortem(n, user=None):
   data = open(home('archive', '%d.mortem' % n, user=user), 'r').read().split('\n')
-  mortem = {}
+  mortem = { 'n': n, 'name': user }
 
   for line in data:
     for regex,handler in matchers.items():
