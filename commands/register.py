@@ -36,8 +36,6 @@ class RegisterCommand(Command):
       os.mkdir(join(home, dir))
     with open(join(home, 'passwd'), 'w') as passwd:
       passwd.write(password)
-    # Create empty scores file
-    open(join(home, 'archive', 'scores'), 'w').close()
 
 
   def run(self, name, password):

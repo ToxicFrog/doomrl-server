@@ -113,38 +113,27 @@ class PlayCommand(Command):
     if exists(doomrl.home('save')):
       os.rename(self.recfile, doomrl.home('saves', name + '.ttyrec'))
       os.rename(doomrl.home('save'), doomrl.home('saves', name))
-    else:
-      # Otherwise, there *should* be a new high score entry and a new mortem.
-      # Unless they simply didn't start a game in the first place.
-      try:
-        mortem = doomrl.raw_mortems()[-1]
-      except IndexError:
-        mortem = None
+      return
 
-      if mortem == mortem_before:
-        # No new postmortem created and no save file means no game played.
-        os.remove(self.recfile)
-        return
+    # Otherwise, there *should* be a new high score entry and a new mortem.
+    # Unless they simply didn't start a game in the first place.
+    try:
+      mortem = doomrl.raw_mortems()[-1]
+    except IndexError:
+      mortem = None
 
-      scores_after = doomrl.raw_scores()
-      n = len(scores_after)
+    if mortem == mortem_before:
+      # No new postmortem created and no save file means no game played.
+      os.remove(self.recfile)
+      return
 
-      # Save the ttyrec and mortem files to the player archive directory.
-      os.rename(self.recfile,
-                doomrl.home('archive', '%d.ttyrec' % n))
-      shutil.copy(doomrl.home('mortem', mortem),
-                  doomrl.home('archive', '%d.mortem' % n))
+    scores_after = doomrl.raw_scores()
+    n = len(scores_after)
 
-      # Write the new score entry to the player's scores file.
-      mortem = doomrl.parse_mortem(n)
-      for (i,score) in enumerate(scores_after):
-        if i >= len(scores_before) or scores_before[i] != score:
-          with open(doomrl.home('archive', 'scores'), "a") as fd:
-            score['n'] = n
-            score['time'] = mortem['time']
-            fd.write(json.dumps(score) + '\n')
-            break
+    # Save the ttyrec and mortem files to the player archive directory.
+    os.rename(self.recfile,
+              doomrl.home('archive', '%d.ttyrec' % n))
+    shutil.copy(doomrl.home('mortem', mortem),
+                doomrl.home('archive', '%d.mortem' % n))
 
-      doomrl.build_website('www')
-
-
+    doomrl.build_website('www')

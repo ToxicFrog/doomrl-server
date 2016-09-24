@@ -21,24 +21,4 @@ class RebuildCommand(Command):
       print('Server administrators only!')
       return
 
-    for player in doomrl.all_users():
-      games = doomrl.games(player)  # scores from the player's score index
-      for (i,game) in enumerate(games):
-        if game.get('time', 0) == 0 or force:
-          game.update(doomrl.parse_mortem(game['n'], player))
-        if game.get('ttytime', None) is None:
-          if exists(doomrl.home('archive', '%d.ttyrec' % game['n'], user=player)):
-            game['ttytime'] = int(TTYRec(
-              path=doomrl.home('archive/%d.ttyrec' % game['n'],
-                               user=player)
-              ).ttytime()[0])
-          else:
-            game['ttytime'] = 0  # no replay available
-      with open(doomrl.home('archive', 'scores', user=player), "w") as fd:
-        for game in games:
-          fd.write(json.dumps(game) + '\n')
-      print('%s: rebuilt %d records' % (player, len(games)))
-
     doomrl.build_website('www')
-
-

@@ -101,7 +101,29 @@ angels = {
 
 matchers = {
   r' ([^,]+), level (\d+) .* (Marine|Scout|Technician),':
-  lambda name, level, klass: { 'level': int(level), 'klass': klass },
+  lambda name, level, klass: { 'charname': name, 'level': int(level), 'klass': klass },
+
+  # Sometimes you get a version where the charname is on a separate line! wriiiiiiii
+  r' level (\d+) .* (Marine|Scout|Technician),':
+  lambda level, klass: { 'level': int(level), 'klass': klass },
+
+  # Not all of them has "was". This is definitely a bug in DoomRL, since you end
+  # up with journal lines saying "on level N, he finally killed by a whatever".
+  r' (?:was )?(?:.*) by ((?:a|an|the) .*) (?:on level|at the)':
+  lambda killer: { 'killed': "killed by " + killer },
+
+  r" (?:got too close to a (cacodemon)"
+  r"|couldn't evade a (revenant)'s fireball"
+  r"|rode a (mancubus) rocket"
+  r"|let an (arachnotron) get him"
+  r"|was melted by (former commando)'s plasma gun"
+  r"|let the (Spider Mastermind) pwn him"
+  r") .*":
+  lambda *args: { 'killed': "killed by a " + [x for x in args if x][0] },
+
+  r" committed a stupid suicide.*": lambda: { 'killed': 'committed suicide' },
+  r" ((?:defeated|nuked) the Mastermind|nuked himself|completed 100 levels) .*":
+  lambda win: { 'killed': win },
 
   r' He survived \d+ turns and scored (\d+) points\.':
   lambda score: { 'score': int(score) },
@@ -109,20 +131,27 @@ matchers = {
   r' He played for (?:(\d+) day)?.*?(?:(\d+) hour)?.*?(?:(\d+) minute)?.*?(?:(\d+) seconds?)?\.':
   lambda d, h, m, s: { 'time': ((int(d or 0) * 24 + int(h or 0)) * 60 + int(m or 0)) * 60 + int(s or 0) },
 
+  # Difficulty levels.
+  r" He was too young to die!":            lambda: { 'difficulty': 'E' },
+  r" He didn't like it too rough.":        lambda: { 'difficulty': 'M' },
+  r" He wasn't afraid to be hurt plenty.": lambda: { 'difficulty': 'H' },
+  r" He was a man of Ultra-Violence!":     lambda: { 'difficulty': 'U' },
+  r" He opposed the Nightmare!":           lambda: { 'difficulty': 'N!'},
+
   r' He was an Angel of (.*)!':
   lambda challenge: { 'challenge': angels[challenge] },
 
   r' He was also an Angel of (.*)!':
   lambda challenge: { 'challenge2': angels[challenge] },
 
-  r' was (?:.*) by ((?:a|an|the) .*) (?:on level|at the)':
-  lambda killer: { 'killed': "killed by " + killer },
+  # Calculate depth from the deepest level that shows up in the journal.
+  r'  On level (\d+) .*': lambda dl: { 'depth': int(dl) },
+  r'  He nuked level (\d+)!': lambda dl: { 'depth': int(dl) },
 
-  r" (?:got too close to a (Cacodemon)|couldn't evade a (revenant)'s fireball|rode a (Mancubus) rocket)":
-  lambda k1, k2, k3: { 'killed': "killed by a " + (k1 or k2 or k3) },
-
+  # Sometimes the morten says "defeated the Mastermind" at the start even when
+  # it was a full win. So, look for the journal entry about killing Carmack.
   r'  Then finally in Hell itself, he killed the final EVIL\.':
-  lambda: { 'killed': 'nuked the Mastermind' },
+  lambda: { 'killed': 'nuked the Mastermind', 'depth': 25 },
 }
 
 def parse_mortem(n, user=None):
@@ -141,8 +170,11 @@ def parse_mortem(n, user=None):
 def games(user=None):
   """All of a player's completed games that we know of."""
   user = user or _user
-  with open(home('archive', 'scores', user=user)) as fd:
-    return [json.loads(line) for line in fd]
+  return [
+    parse_mortem(int(filename.replace('.mortem', '')), user=user)
+    for filename in os.listdir(home('archive', user=user))
+    if filename.endswith('.mortem')
+  ]
 
 def winner(game):
   return (

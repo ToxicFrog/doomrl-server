@@ -45,7 +45,13 @@ class ReplayCommand(Command):
     elif not doomrl.user_exists(player):
       return 'No such player: %s' % player
     elif not id:
-      return doomrl.show_scores(self.replays(player), time='ttytime')
+      # FIXME: this currently shows the play time, not the ttyrec time.
+      # This is because, with the new on-the-fly mortem parsing and elimination
+      # of the score cache, determining the ttyrec time on the fly requires
+      # reading all of the player's ttyrec files start to finish, which may be
+      # hundreds of megabytes if they've played a lot of games, and we don't
+      # want to do that every time someone types 'scores'.
+      return doomrl.show_scores(self.replays(player))
 
     # Replay the named recording.
     replays = self.replays(player)
