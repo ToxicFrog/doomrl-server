@@ -8,14 +8,15 @@ from ttyrec import TTYRec
 class RebuildCommand(Command):
   """rebuild -- regenerate the score and mortem index. Admins only.
 
-  This command rescans the archived postmortems and ttyrecs of each player to
-  correct errors in the master score index. These errors are usually the result
-  of bugs in an earlier version of doomrl-server.
+  This command rescans the archived postmortems and ttyrecs of each player and
+  rebuilds the cached score information and website based on what it finds.
 
-  At the moment it only corrects errors in the 'time' and 'ttytime' fields.
+  If you run it with any argument, it will rebuild all game information even
+  if no errors are detected in the cached information.
   """
+  nargs = 1
 
-  def run(self):
+  def run(self, force):
     if not doomrl.debug():
       print('Server administrators only!')
       return
@@ -23,9 +24,8 @@ class RebuildCommand(Command):
     for player in doomrl.all_users():
       games = doomrl.games(player)  # scores from the player's score index
       for (i,game) in enumerate(games):
-        if game.get('time', 0) == 0:
-          mortem = doomrl.parse_mortem(game['n'], player)
-          game['time'] = mortem['time']
+        if game.get('time', 0) == 0 or force:
+          game.update(doomrl.parse_mortem(game['n'], player))
         if game.get('ttytime', None) is None:
           if exists(doomrl.home('archive', '%d.ttyrec' % game['n'], user=player)):
             game['ttytime'] = int(TTYRec(
