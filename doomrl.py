@@ -86,6 +86,7 @@ angels = {
   'Marksmanship': 'AoMr',
   'Shotgunnery': 'AoSh',
   'Light Travel': 'AoLT',
+  'Travel': 'AoLT',
   'Impatience': 'AoI',
   'Confidence': 'AoCn',
   'Purity': 'AoP',
@@ -140,6 +141,9 @@ matchers = {
 
   r' He was an Angel of (.*)!':
   lambda challenge: { 'challenge': angels[challenge] },
+
+  r' He was an Archangel of (.*)!':
+  lambda challenge: { 'challenge': 'A' + angels[challenge] },
 
   r' He was also an Angel of (.*)!':
   lambda challenge: { 'challenge2': angels[challenge] },
