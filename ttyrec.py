@@ -55,7 +55,6 @@ class TTYRec(object):
     """
     with open(self.path, "rb") as fd:
       start_ts = next_frame(fd)[0]
-      fd.seek(0)
       for ts,_ in frames(fd):
         end_ts = ts
     return (end_ts - start_ts), start_ts, end_ts
@@ -72,7 +71,7 @@ class TTYRec(object):
     self.last_sgr = match.group(0)
     return match.group(0)
 
-  def write_frame(self, fd, s, us, sz, data):
+  def write_frame(self, fd, ts, data):
     # strip out garbage commands
     trimmed = re.sub(b'\x1B\\[\\d+;\\d+H', self.strip_pos, data)
     trimmed = re.sub(b'\x1B\\[[\\d;]+m', self.strip_sgr, trimmed)
@@ -81,11 +80,11 @@ class TTYRec(object):
       # If there's anything left of the frame after stripping no-ops, write it
       # to the recording.
       # Correct the timestamp first, if needed.
-      if (s - self.delta) - self.last_s > 2:
-        self.delta = s - self.last_s - 1
-      s -= self.delta
-      self.last_s = s
-      fd.write(pack("III", s, us, sz) + data)
+      if (ts - self.delta) - self.last_ts > 2:
+        self.delta = ts - self.last_ts - 1
+      ts -= self.delta
+      self.last_ts = ts
+      fd.write(pack("III", int(ts), int(ts%1 * 1e6), len(data)) + data)
       fd.flush()
       return data
 
@@ -99,12 +98,11 @@ class TTYRec(object):
     # Set up the initial state for recording.
     self.last_sgr = None
     self.last_pos = None
-    self.last_s = int(time())
     self.delta = 0
     if exists(self.path):
-      self.last_s = self.ttytime()[2] # end time of recording
+      self.last_ts = self.ttytime()[2] # end time of recording
     else:
-      self.last_s = int(time())
+      self.last_ts = time()
 
     # Put the terminal in raw mode. This is apparently necessary even though the
     # web version (which doesn't support termios calls) works fine.
@@ -120,10 +118,6 @@ class TTYRec(object):
         data = os.read(in_fd, 8192)
         if not data:
           break
-        # Split timestamp into seconds and microseconds
-        ts = time()
-        s = int(ts)
-        us = int(ts % 1 * 1e6)
-        data = self.write_frame(ttyrec, s, us, len(data), data)
+        data = self.write_frame(ttyrec, time(), data)
         if data and out_fd:
           os.write(out_fd, data)
