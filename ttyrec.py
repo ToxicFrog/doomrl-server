@@ -1,9 +1,11 @@
 import datetime
 import os
 import re
+import tty
 
 from datetime import timedelta
 from os.path import exists
+from select import select
 from struct import pack,unpack
 from time import time
 
@@ -48,6 +50,9 @@ class TTYRec(object):
   def __exit__(self, type, value, stack):
     pass
 
+
+  ### ttytime(1) ###
+
   def ttytime(self):
     """Similar to ttytime(1). Returns a (length, start, end) tuple; length is the
     total length of the recording, start and end the absolute timestamps of the
@@ -58,6 +63,9 @@ class TTYRec(object):
       for ts,_ in frames(fd):
         end_ts = ts
     return (end_ts - start_ts), start_ts, end_ts
+
+
+  ### ttyrec(1) ###
 
   def strip_pos(self, match):
     if match.group(0) == self.last_pos:
@@ -106,7 +114,6 @@ class TTYRec(object):
 
     # Put the terminal in raw mode. This is apparently necessary even though the
     # web version (which doesn't support termios calls) works fine.
-    import tty
     tty.setraw(out_fd)
     tty.setcbreak(out_fd)
 
@@ -121,3 +128,39 @@ class TTYRec(object):
         data = self.write_frame(ttyrec, time(), data)
         if data and out_fd:
           os.write(out_fd, data)
+
+
+  ### ttyplay(1) ###
+
+  def ttyplay(self, stdin=0, stdout=1):
+    speed = 1.0
+    tty.setraw(stdout)
+    with open(self.path, "rb") as fd:
+      (old_ts,data) = next_frame(fd)
+      os.write(stdout, data)
+      for ts,data in frames(fd):
+        now = time()
+        frame_time = ts - old_ts
+        while frame_time > 0:
+          (fdin,_,_) = select([stdin], [], [], frame_time/speed)
+          if fdin:
+            # process input from user
+            char = os.read(stdin, 1)
+            if char == b'q':
+              sys.exit(0)
+            elif char == b'f':
+              speed *= 2.0
+            elif char == b's':
+              speed *= 0.5
+            elif char == b'1':
+              speed = 1.0
+            frame_time -= time() - now
+          else:
+            frame_time = 0
+        os.write(stdout,data)
+        old_ts = ts
+
+
+if __name__ == "__main__":
+  import sys
+  TTYRec(sys.argv[1]).ttyplay()
