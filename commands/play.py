@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tty
 
 from commands import Command
 from os.path import exists
@@ -62,6 +63,10 @@ class PlayCommand(Command):
     (rpipe,wpipe) = os.pipe()
     child = subprocess.Popen(cmd, stdout=wpipe, env=env, cwd=doomrl.home())
     os.close(wpipe)
+
+    # DoomRL needs the terminal in raw mode, but since it's running inside ttyrec
+    # it can't control that setting.
+    tty.setraw(1)
 
     with TTYRec(self.recfile) as rec:
       # This will return when DoomRL closes the fd.

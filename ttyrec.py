@@ -101,6 +101,9 @@ class TTYRec(object):
 
     If out_fd is specified, additionally writes the stripped data to it. This
     is usually stdout.
+
+    If the terminal needs to be in raw mode (hint: it almost certainly does),
+    it's up to the caller to arrange this.
     """
 
     # Set up the initial state for recording.
@@ -111,11 +114,6 @@ class TTYRec(object):
       self.last_ts = self.ttytime()[2] # end time of recording
     else:
       self.last_ts = time()
-
-    # Put the terminal in raw mode. This is apparently necessary even though the
-    # web version (which doesn't support termios calls) works fine.
-    tty.setraw(out_fd)
-    tty.setcbreak(out_fd)
 
     # Open the file for append
     with open(self.path, "ab") as ttyrec:
