@@ -8,6 +8,7 @@ import tty
 
 from commands import Command
 from os.path import exists
+from syslog import syslog as log
 from ttyrec import TTYRec
 
 def resetTerm():
@@ -104,16 +105,13 @@ class PlayCommand(Command):
       self.run_doomrl()
     except Exception as e:
       import traceback
-      log('Error running DoomRL: ' + traceback.format_exc())
-      # If something went wrong while playing DoomRL, the terminal is probably
-      # completely hosed and there may still be processes running in the
-      # background. Nothing to do here but die and hope the SIGHUP gets them.
       resetTerm()
+      log('Error running DoomRL: ' + traceback.format_exc())
       traceback.print_exc()
       sys.exit(1)
     finally:
-      resetTerm()
       self.shutdown(name, scores, mortem)
+    resetTerm()
 
   def shutdown(self, name, scores_before, mortem_before):
     # If the game is still in progress, save the ttyrec file.
