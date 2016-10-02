@@ -159,4 +159,5 @@ class TTYRec(object):
 
 if __name__ == "__main__":
   import sys
-  TTYRec(sys.argv[1]).ttyplay()
+  with TTYRec(sys.argv[1]) as ttyrec:
+    ttyrec.ttyplay()
