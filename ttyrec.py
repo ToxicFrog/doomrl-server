@@ -9,20 +9,6 @@ from select import select
 from struct import pack,unpack
 from time import time
 
-def next_frame(fd):
-  header = fd.read(12)
-  if not header:
-    return None
-  (s, us, sz) = unpack("III", header)
-  data = fd.read(sz)
-  return (s + float(us)/1e6, data)
-
-def frames(fd):
-  frame = next_frame(fd)
-  while frame is not None:
-    yield frame
-    frame = next_frame(fd)
-
 class TTYRec(object):
   """A custom TTYRec implementation for DoomRL.
 
@@ -45,11 +31,26 @@ class TTYRec(object):
     self.path = path
 
   def __enter__(self):
+    self.fd = open(self.path, 'r+b')
     return self
 
   def __exit__(self, type, value, stack):
+    self.fd.close()
     pass
 
+  def next_frame(self):
+    header = self.fd.read(12)
+    if not header:
+      return None
+    (s, us, sz) = unpack("III", header)
+    data = self.fd.read(sz)
+    return (s + float(us)/1e6, data)
+
+  def frames(self):
+    frame = self.next_frame()
+    while frame is not None:
+      yield frame
+      frame = self.next_frame()
 
   ### ttytime(1) ###
 
@@ -58,10 +59,9 @@ class TTYRec(object):
     total length of the recording, start and end the absolute timestamps of the
     first and last frames.
     """
-    with open(self.path, "rb") as fd:
-      start_ts = next_frame(fd)[0]
-      for ts,_ in frames(fd):
-        end_ts = ts
+    start_ts = self.next_frame()[0]
+    for ts,_ in self.frames():
+      end_ts = ts
     return (end_ts - start_ts), start_ts, end_ts
 
 
@@ -79,10 +79,11 @@ class TTYRec(object):
     self.last_sgr = match.group(0)
     return match.group(0)
 
-  def write_frame(self, fd, ts, data):
-    # strip out garbage commands
+  def write_frame(self, ts, data):
+    # Remove redundant SGR and cursor positioning commands.
     trimmed = re.sub(b'\x1B\\[\\d+;\\d+H', self.strip_pos, data)
     trimmed = re.sub(b'\x1B\\[[\\d;]+m', self.strip_sgr, trimmed)
+    # Remove redundant DECRST[wraparound mode] commands.
     trimmed = re.sub(b'\x1B\\[\\?7l', b'', trimmed)
     if trimmed:
       # If there's anything left of the frame after stripping no-ops, write it
@@ -92,8 +93,8 @@ class TTYRec(object):
         self.delta = ts - self.last_ts - 1
       ts -= self.delta
       self.last_ts = ts
-      fd.write(pack("III", int(ts), int(ts%1 * 1e6), len(data)) + data)
-      fd.flush()
+      self.fd.write(pack("III", int(ts), int(ts%1 * 1e6), len(data)) + data)
+      self.fd.flush()
       return data
 
   def ttyrec(self, in_fd, out_fd=1):
@@ -115,17 +116,15 @@ class TTYRec(object):
     else:
       self.last_ts = time()
 
-    # Open the file for append
-    with open(self.path, "ab") as ttyrec:
-      # Now we read from the pipe and process the output until it's closed,
-      # stripping out garbage frames and writing the rest to disk.
-      while True:
-        data = os.read(in_fd, 8192)
-        if not data:
-          break
-        data = self.write_frame(ttyrec, time(), data)
-        if data and out_fd:
-          os.write(out_fd, data)
+    # Now we read from the pipe and process the output until it's closed,
+    # stripping out garbage frames and writing the rest to disk.
+    while True:
+      data = os.read(in_fd, 8192)
+      if not data:
+        break
+      data = self.write_frame(time(), data)
+      if data and out_fd:
+        os.write(out_fd, data)
 
 
   ### ttyplay(1) ###
@@ -133,30 +132,29 @@ class TTYRec(object):
   def ttyplay(self, stdin=0, stdout=1):
     speed = 1.0
     tty.setraw(stdout)
-    with open(self.path, "rb") as fd:
-      (old_ts,data) = next_frame(fd)
-      os.write(stdout, data)
-      for ts,data in frames(fd):
-        now = time()
-        frame_time = ts - old_ts
-        while frame_time > 0:
-          (fdin,_,_) = select([stdin], [], [], frame_time/speed)
-          if fdin:
-            # process input from user
-            char = os.read(stdin, 1)
-            if char == b'q':
-              sys.exit(0)
-            elif char == b'f':
-              speed *= 2.0
-            elif char == b's':
-              speed *= 0.5
-            elif char == b'1':
-              speed = 1.0
-            frame_time -= time() - now
-          else:
-            frame_time = 0
-        os.write(stdout,data)
-        old_ts = ts
+    (old_ts,data) = self.next_frame()
+    os.write(stdout, data)
+    for ts,data in self.frames():
+      now = time()
+      frame_time = ts - old_ts
+      while frame_time > 0:
+        (fdin,_,_) = select([stdin], [], [], frame_time/speed)
+        if fdin:
+          # process input from user
+          char = os.read(stdin, 1)
+          if char == b'q':
+            sys.exit(0)
+          elif char == b'f':
+            speed *= 2.0
+          elif char == b's':
+            speed *= 0.5
+          elif char == b'1':
+            speed = 1.0
+          frame_time -= time() - now
+        else:
+          frame_time = 0
+      os.write(stdout,data)
+      old_ts = ts
 
 
 if __name__ == "__main__":
