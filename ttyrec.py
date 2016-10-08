@@ -1,6 +1,7 @@
 import datetime
 import os
 import re
+import termios
 import tty
 
 from datetime import timedelta
@@ -8,6 +9,17 @@ from os.path import exists
 from select import select
 from struct import pack,unpack
 from time import time
+
+def resetTTY(stdin=0, stdout=1):
+  # Reset the TTY by sending hard and soft terminal reset strings.
+  os.write(stdout, b'\x1Bc\x1B[!p')
+  # Reset the TTY controller using termios. This should be roughly equivalent to 'stty cooked'.
+  attr = termios.tcgetattr(stdin)
+  attr[0] |= termios.BRKINT | termios.IGNPAR | termios.ISTRIP | termios.ICRNL | termios.IXON
+  attr[1] |= termios.ONLCR | termios.OPOST
+  attr[3] |= termios.ECHO | termios.ECHONL | termios.ICANON | termios.ISIG | termios.IEXTEN
+  termios.tcsetattr(stdin, termios.TCSADRAIN, attr)
+
 
 class TTYRec(object):
   """A custom TTYRec implementation for DoomRL.
@@ -31,12 +43,15 @@ class TTYRec(object):
     self.path = path
 
   def __enter__(self):
-    self.fd = open(self.path, 'r+b')
+    if exists(self.path):
+      self.fd = open(self.path, 'r+b')
+    else:
+      self.fd = open(self.path, 'w+b')
     return self
 
   def __exit__(self, type, value, stack):
+    resetTTY()
     self.fd.close()
-    pass
 
   def next_frame(self):
     header = self.fd.read(12)
@@ -52,6 +67,9 @@ class TTYRec(object):
       yield frame
       frame = self.next_frame()
 
+  def rewind(self):
+    self.fd.seek(0)
+
   ### ttytime(1) ###
 
   def ttytime(self):
@@ -59,7 +77,11 @@ class TTYRec(object):
     total length of the recording, start and end the absolute timestamps of the
     first and last frames.
     """
-    start_ts = self.next_frame()[0]
+    self.rewind()
+    frame = self.next_frame()
+    if frame is None:
+      return 0, time(), time()
+    start_ts = frame[0]
     for ts,_ in self.frames():
       end_ts = ts
     return (end_ts - start_ts), start_ts, end_ts
@@ -111,10 +133,7 @@ class TTYRec(object):
     self.last_sgr = None
     self.last_pos = None
     self.delta = 0
-    if exists(self.path):
-      self.last_ts = self.ttytime()[2] # end time of recording
-    else:
-      self.last_ts = time()
+    self.last_ts = self.ttytime()[2] # this also seeks to the end of the file
 
     # Now we read from the pipe and process the output until it's closed,
     # stripping out garbage frames and writing the rest to disk.

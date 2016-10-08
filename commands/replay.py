@@ -1,12 +1,10 @@
 import doomrl
 import os
 import subprocess
+import ttyrec
 
 from commands import Command
 from os.path import exists
-
-def resetTerm():
-  os.write(1, '\x1Bc\x1B[!p'.encode('ascii'))
 
 class ReplayCommand(Command):
   """replay <player> <number> -- replay a recorded game
@@ -22,7 +20,7 @@ class ReplayCommand(Command):
     f or +: go faster
     s or -: go slower
     1: reset speed
-    ctrl-c: exit replay
+    q: exit replay
   """
 
   nargs = 2
@@ -67,13 +65,5 @@ class ReplayCommand(Command):
     if not exists(replay):
       return 'No replay with that ID found for that player.'
 
-    try:
-      subprocess.call(
-        ['ttyplay', replay],
-        cwd=doomrl.home('archive', user=player))
-    except KeyboardInterrupt:
-      pass
-    finally:
-      # ttyplay may leave the terminal messed up. This fixes it.
-      resetTerm()
-
+    with TTYRec(replay) as ttyrec:
+      ttyrec.ttyplay()
