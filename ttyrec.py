@@ -39,8 +39,9 @@ class TTYRec(object):
   It completely replaces the use of ttyrec; this class simultaneously filters
   the output of DoomRL and writes the ttyrec file.
   """
-  def __init__(self, path):
+  def __init__(self, path, reset=False):
     self.path = path
+    self.reset_tty = reset
 
   def __enter__(self):
     if exists(self.path):
@@ -50,7 +51,8 @@ class TTYRec(object):
     return self
 
   def __exit__(self, type, value, stack):
-    resetTTY()
+    if self.reset_tty:
+      resetTTY()
     self.fd.close()
 
   def next_frame(self):
@@ -130,6 +132,7 @@ class TTYRec(object):
     """
 
     # Set up the initial state for recording.
+    self.reset_tty = True
     self.last_sgr = None
     self.last_pos = None
     self.delta = 0
@@ -149,6 +152,7 @@ class TTYRec(object):
   ### ttyplay(1) ###
 
   def ttyplay(self, stdin=0, stdout=1):
+    self.reset_tty = True
     speed = 1.0
     tty.setraw(stdout)
     (old_ts,data) = self.next_frame()
@@ -162,7 +166,7 @@ class TTYRec(object):
           # process input from user
           char = os.read(stdin, 1)
           if char == b'q':
-            sys.exit(0)
+            return
           elif char == b'f':
             speed *= 2.0
           elif char == b's':

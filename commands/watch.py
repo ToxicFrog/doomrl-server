@@ -5,10 +5,7 @@ import subprocess
 from commands import Command
 from datetime import timedelta
 from os.path import exists
-from ttyrec import TTYRec
-
-def resetTerm():
-  os.write(1, '\x1Bc\x1B[!p'.encode('ascii'))
+from ttyrec import resetTTY,TTYRec
 
 class WatchCommand(Command):
   """watch <player> -- watch an in-progress game of DoomRL.
@@ -33,8 +30,8 @@ class WatchCommand(Command):
       print('   TIME PLAYER')
       for player in doomrl.all_users():
         if exists(doomrl.home('ttyrec', user=player)):
-          time = int(TTYRec(path=doomrl.home('ttyrec', user=player)).ttytime()[0])
-          print("%7s %s" % (str(timedelta(seconds=int(time))), player))
+          with TTYRec(path=doomrl.home('ttyrec', user=player)) as ttyrec:
+            print("%7s %s" % (str(timedelta(seconds=int(ttyrec.ttytime()[0]))), player))
       return
 
     if not exists(doomrl.home('ttyrec', user=player)):
@@ -42,6 +39,7 @@ class WatchCommand(Command):
 
     try:
       # First we 'catch up' by playing the replay so far at max speed.
+      # TODO: replace with python implementation.
       subprocess.call(
         ['ttyplay', '-n', 'ttyrec'],
         cwd=doomrl.home(user=player))
@@ -52,6 +50,4 @@ class WatchCommand(Command):
     except KeyboardInterrupt:
       pass
     finally:
-      # ttyplay may leave the terminal messed up. This fixes it.
-      resetTerm()
-
+      resetTTY()

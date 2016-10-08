@@ -11,8 +11,6 @@ from os.path import exists
 from syslog import syslog as log
 from ttyrec import TTYRec
 
-def resetTerm():
-  os.write(1, '\x1Bc\x1B[!p'.encode('ascii'))
 
 class PlayCommand(Command):
   """play <name> -- start or continue a game of DoomRL.
@@ -71,6 +69,7 @@ class PlayCommand(Command):
 
     with TTYRec(self.recfile) as rec:
       # This will return when DoomRL closes the fd.
+      # It will also automatically reset the TTY on leaving the 'with' block.
       rec.ttyrec(in_fd=rpipe)
     child.wait()
 
@@ -105,13 +104,11 @@ class PlayCommand(Command):
       self.run_doomrl()
     except Exception as e:
       import traceback
-      resetTerm()
       log('Error running DoomRL: ' + traceback.format_exc())
       traceback.print_exc()
       sys.exit(1)
     finally:
       self.shutdown(name, scores, mortem)
-    resetTerm()
 
   def shutdown(self, name, scores_before, mortem_before):
     # If the game is still in progress, save the ttyrec file.

@@ -1,10 +1,10 @@
 import doomrl
 import os
 import subprocess
-import ttyrec
 
 from commands import Command
 from os.path import exists
+from ttyrec import TTYRec
 
 class ReplayCommand(Command):
   """replay <player> <number> -- replay a recorded game
