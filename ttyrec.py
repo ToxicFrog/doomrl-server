@@ -151,10 +151,13 @@ class TTYRec(object):
   ### ttyplay(1) ###
   # This is complicated enough that it has its own class (TTYPlayer).
 
-  def ttyplay(self, **kwargs):
+  def ttyplay(self, follow=False, **kwargs):
     self.reset_tty = True
     player = TTYPlayer(self, **kwargs)
-    player.play()
+    if follow:
+      player.follow()
+    else:
+      player.play()
 
 
 _keybinds = {}
@@ -253,7 +256,22 @@ class TTYPlayer(object):
       self.progress_bar(self.osd_width - len(speed) - len(position) - 2),
       speed))
 
-  def play(self, seek_to=0.0):
+  def follow(self):
+    tty.setraw(self.stdout)
+    self.ttyrec.rewind()
+
+    for _,data in self.ttyrec.frames():
+      os.write(self.stdout, data)
+    while True:
+      (fdin,_,_) = select([self.stdin], [], [], 0.25)
+      if fdin:
+        char = os.read(self.stdin, 1)
+        if char == b'q':
+          return
+      for _,data in self.ttyrec.frames():
+        os.write(self.stdout, data)
+
+  def play(self):
     tty.setraw(self.stdout)
     self.ttyrec.rewind()
     prev_ts = self.start

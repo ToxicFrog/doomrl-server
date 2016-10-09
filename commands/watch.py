@@ -37,17 +37,5 @@ class WatchCommand(Command):
     if not exists(doomrl.home('ttyrec', user=player)):
       return 'No game in progress under that name.'
 
-    try:
-      # First we 'catch up' by playing the replay so far at max speed.
-      # TODO: replace with python implementation.
-      subprocess.call(
-        ['ttyplay', '-n', 'ttyrec'],
-        cwd=doomrl.home(user=player))
-      # Then we peek at what remains.
-      subprocess.call(
-        ['ttyplay', '-p', 'ttyrec'],
-        cwd=doomrl.home(user=player))
-    except KeyboardInterrupt:
-      pass
-    finally:
-      resetTTY()
+    with TTYRec(doomrl.home('ttyrec', user=player)) as ttyrec:
+      ttyrec.ttyplay(follow=True)

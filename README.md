@@ -9,13 +9,12 @@ It has optional support for a web-based scoreboard and closed captions, too.
 Before you can run it, DoomRL-server has a number of requirements:
 
 - Python 3.3+
-- `ttyplay`
 - `less`
 - `nano`
 - `websockify` (optional; for web client support)
 - and DoomRL itself.
 
-Python, `nano`, and `less` are commonly installed by default. `reset` is likely to be as well, and if not is generally part of curses (the `ncurses-utils` package on SUSE, for example). `ttyrec` may need to be specifically installed.
+Python, `nano`, and `less` are commonly installed by default. `websockify` will probably need to be specifically installed; on SUSE the necessary package is `python-websockify`.
 
 DoomRL should be unpacked into doomrl-server's `doomrl/` directory (so that `doomrl/doomrl` is the doomrl binary itself). The sound files are not used, so the "low-quality" version of DoomRL is sufficient.
 
