@@ -186,7 +186,6 @@ class TTYPlayer(object):
 
     ttyrec.rewind()
     (self.duration, self.start, self.end) = ttyrec.ttytime()
-    self.position = 0.0
     ttyrec.rewind()
 
   # TODO: other keybinds:
@@ -254,14 +253,14 @@ class TTYPlayer(object):
       self.progress_bar(self.osd_width - len(speed) - len(position) - 2),
       speed))
 
-  def play(self):
+  def play(self, seek_to=0.0):
     tty.setraw(self.stdout)
-    (prev_ts,data) = self.ttyrec.next_frame()
-    os.write(self.stdout, data)
+    self.ttyrec.rewind()
+    prev_ts = self.start
 
     for ts,data in self.ttyrec.frames():
-      self.position = ts - self.start
       now = time()
+      self.position = ts - self.start
       self.frame_gap = ts - prev_ts  # time until next frame should display
       while self.frame_gap > 0:
         (fdin,_,_) = select([self.stdin], [], [], self.frame_gap/self.speed)
