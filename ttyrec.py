@@ -8,7 +8,7 @@ from datetime import timedelta
 from os.path import exists
 from select import select
 from struct import pack,unpack
-from time import time
+from time import time, sleep
 
 def resetTTY(stdin=0, stdout=1):
   # Reset the TTY by sending hard and soft terminal reset strings.
@@ -148,36 +148,139 @@ class TTYRec(object):
       if data and out_fd:
         os.write(out_fd, data)
 
-
   ### ttyplay(1) ###
+  # This is complicated enough that it has its own class (TTYPlayer).
 
-  def ttyplay(self, stdin=0, stdout=1):
+  def ttyplay(self, **kwargs):
     self.reset_tty = True
-    speed = 1.0
-    tty.setraw(stdout)
-    (old_ts,data) = self.next_frame()
-    os.write(stdout, data)
-    for ts,data in self.frames():
+    player = TTYPlayer(self, **kwargs)
+    player.play()
+
+
+_keybinds = {}
+def keybind(*keys):
+  def wrap(fn):
+    for k in keys:
+      _keybinds[bytes(k, 'ascii')] = fn
+    return fn
+  return wrap
+
+class TTYPlayer(object):
+  """An interactive player for ttyrec files. This is complicated enough and has
+  enough state that it gets its own class.
+
+  It should not be instantiated directly; instead, create and play a TTYRec:
+  with TTYRec(path) as ttyrec:
+    ttyrec.ttyplay(...arguments to TTYPlayer constructor...)
+  """
+
+  speed = 1.0
+
+  def __init__(self, ttyrec, stdin=0, stdout=1, osd_line=1, osd_width=80):
+    self.ttyrec = ttyrec
+    self.osd_line = osd_line
+    self.osd_width = osd_width
+    self.stdin = stdin
+    self.stdout = stdout
+    self.clear_osd = False
+
+    ttyrec.rewind()
+    (self.duration, self.start, self.end) = ttyrec.ttytime()
+    self.position = 0.0
+    ttyrec.rewind()
+
+  # TODO: other keybinds:
+  # space to (un)pause
+  # ,. to seek back/forward (1m?)
+  # <> to seek back/forward a lot (10m?)
+  # enter for frame advance when paused
+  # [] to seek back/forward a little (1s?)
+  @keybind('f', '=', '+')
+  def faster(self):
+    self.speed *= 2.0
+
+  @keybind('s', '-', '_')
+  def slower(self):
+    self.speed /= 2.0
+
+  @keybind('1')
+  def realtime(self):
+    self.speed = 1.0
+
+  def dispatch_command(self, key):
+    if key not in _keybinds:
+      # Unknown command.
+      self.clear_osd = True
+      self.osd('Unknown command: ' + key.decode('ascii'))
+      self.frame_gap = max(self.frame_gap, self.speed)
+      return
+    _keybinds[key](self)
+    self.status()
+    # Delay at least one second before resuming playback.
+    self.frame_gap = max(self.frame_gap, self.speed)
+
+  def osd(self, str):
+    # Save cursor position, then move cursor to target row and erase line.
+    # \x1B[1;37;44m
+    os.write(1, b'\x1B[s\x1B[%d;1H\x1B[2K' % self.osd_line)
+    # Display message.
+    os.write(1, str.encode('utf8'))
+    # Restore old cursor position.
+    os.write(1, b'\x1B[u')
+
+  def progress_bar(self, width):
+    """Return a textual progress bar that looks like |--0--| scaled to fit in
+    'width' columns."""
+    position = (self.position/self.duration) * (width-2)
+    return ('|'
+      + '-' * int(position)
+      + '0'
+      + '-' * int(width-3-position)
+      + '|')
+
+  def status(self):
+    if self.speed >= 1:
+      speed = '%dx' % self.speed
+    else:
+      speed = '1/%dx' % (1.0/self.speed)
+
+    position = ' %d:%02d / %d:%02d' % (
+      self.position/60, self.position % 60,
+      self.duration/60, self.duration % 60)
+
+    self.clear_osd = True
+    self.osd('%s %s %s' % (
+      position,
+      self.progress_bar(self.osd_width - len(speed) - len(position) - 2),
+      speed))
+
+  def play(self):
+    tty.setraw(self.stdout)
+    (prev_ts,data) = self.ttyrec.next_frame()
+    os.write(self.stdout, data)
+
+    for ts,data in self.ttyrec.frames():
+      self.position = ts - self.start
       now = time()
-      frame_time = ts - old_ts
-      while frame_time > 0:
-        (fdin,_,_) = select([stdin], [], [], frame_time/speed)
+      self.frame_gap = ts - prev_ts  # time until next frame should display
+      while self.frame_gap > 0:
+        (fdin,_,_) = select([self.stdin], [], [], self.frame_gap/self.speed)
         if fdin:
+          self.frame_gap -= (time() - now)*self.speed
           # process input from user
-          char = os.read(stdin, 1)
+          char = os.read(self.stdin, 1)
           if char == b'q':
             return
-          elif char == b'f':
-            speed *= 2.0
-          elif char == b's':
-            speed *= 0.5
-          elif char == b'1':
-            speed = 1.0
-          frame_time -= time() - now
+          else:
+            self.dispatch_command(char)
         else:
-          frame_time = 0
-      os.write(stdout,data)
-      old_ts = ts
+          # select() timer expired, time for the next frame.
+          if self.clear_osd:
+            self.osd('')
+            self.clear_osd = False
+          break
+      os.write(self.stdout, data)
+      prev_ts = ts
 
 
 if __name__ == "__main__":

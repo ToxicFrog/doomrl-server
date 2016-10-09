@@ -66,4 +66,4 @@ class ReplayCommand(Command):
       return 'No replay with that ID found for that player.'
 
     with TTYRec(replay) as ttyrec:
-      ttyrec.ttyplay()
+      ttyrec.ttyplay(osd_line=26)
