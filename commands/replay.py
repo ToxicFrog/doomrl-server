@@ -20,6 +20,7 @@ class ReplayCommand(Command):
     f or +: go faster
     s or -: go slower
     1: reset speed
+    , and .: seek backward or forward 1 minute
     q: exit replay
   """
 

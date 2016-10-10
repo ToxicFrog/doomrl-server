@@ -209,6 +209,14 @@ class TTYPlayer(object):
   def realtime(self):
     self.speed = 1.0
 
+  @keybind(',')
+  def seek_back(self):
+    self.seek_to(max(self.position-60, 0.0))
+
+  @keybind('.')
+  def seek_forward(self):
+    self.seek_to(min(self.position+60, self.duration))
+
   def dispatch_command(self, key):
     if key not in _keybinds:
       # Unknown command.
@@ -234,11 +242,7 @@ class TTYPlayer(object):
     """Return a textual progress bar that looks like |--0--| scaled to fit in
     'width' columns."""
     position = (self.position/self.duration) * (width-2)
-    return ('|'
-      + '-' * int(position)
-      + '0'
-      + '-' * int(width-3-position)
-      + '|')
+    return ('|' + '-' * int(position) + '0' + '-' * int(width-3-position) + '|')
 
   def status(self):
     if self.speed >= 1:
@@ -255,6 +259,19 @@ class TTYPlayer(object):
       position,
       self.progress_bar(self.osd_width - len(speed) - len(position) - 2),
       speed))
+
+  def seek_to(self, when):
+    if when < self.position:
+      self.ttyrec.rewind()
+      self.position = 0.0
+
+    for ts,data in self.ttyrec.frames():
+      os.write(self.stdout, data)
+      if ts - self.start >= when:
+        self.position = ts - self.start
+        self.frame_gap = 0
+        self.next_frame = (self.start + self.position, b'')
+        return
 
   def follow(self):
     tty.setraw(self.stdout)
@@ -276,10 +293,11 @@ class TTYPlayer(object):
     self.ttyrec.rewind()
     prev_ts = self.start
 
-    for ts,data in self.ttyrec.frames():
+    for frame in self.ttyrec.frames():
       now = time()
-      self.position = ts - self.start
-      self.frame_gap = ts - prev_ts  # time until next frame should display
+      self.next_frame = frame
+      self.position = frame[0] - self.start
+      self.frame_gap = frame[0] - prev_ts  # time until next frame should display
       while self.frame_gap > 0:
         (fdin,_,_) = select([self.stdin], [], [], self.frame_gap/self.speed)
         if fdin:
@@ -296,8 +314,8 @@ class TTYPlayer(object):
             self.osd('')
             self.clear_osd = False
           break
-      os.write(self.stdout, data)
-      prev_ts = ts
+      os.write(self.stdout, self.next_frame[1])
+      prev_ts = self.next_frame[0]
 
 
 if __name__ == "__main__":
