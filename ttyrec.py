@@ -259,11 +259,11 @@ class TTYPlayer(object):
     """Display the given string on screen."""
     # Save cursor position, then move cursor to target row and erase line.
     # \x1B[1;37;44m
-    os.write(1, b'\x1B[s\x1B[%d;1H\x1B[2K' % self.osd_line)
+    os.write(self.stdout, b'\x1B[s\x1B[%d;1H\x1B[2K' % self.osd_line)
     # Display message.
-    os.write(1, str.encode('utf8'))
+    os.write(self.stdout, str.encode('utf8'))
     # Restore old cursor position.
-    os.write(1, b'\x1B[u')
+    os.write(self.stdout, b'\x1B[u')
 
   def progress_bar(self, width):
     """Return a textual progress bar that looks like |--0--| scaled to fit in
