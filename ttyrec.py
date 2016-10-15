@@ -268,26 +268,26 @@ class TTYPlayer(object):
   def progress_bar(self, width):
     """Return a textual progress bar that looks like |--0--| scaled to fit in
     'width' columns."""
-    position = (self.position/self.duration) * (width-2)
-    return ('|' + '-' * int(position) + '0' + '-' * int(width-3-position) + '|')
+    position = (self.position/self.duration) * (width-3)
+    return ('|' + '-' * int(position) + '0' + '-' * (width-3-int(position)) + '|')
 
   def status(self):
     """Display the current status -- timestamp/duration, progress bar, and speed
     -- using osd()."""
     if self.pause:
-      speed = "PAUSE"
+      speed = " PAUSE "
     elif self.speed >= 1:
-      speed = '%dx' % self.speed
+      speed = ' %dx ' % self.speed
     else:
-      speed = '1/%dx' % (1.0/self.speed)
+      speed = ' 1/%dx ' % (1.0/self.speed)
 
-    position = ' %d:%02d / %d:%02d' % (
+    position = ' %d:%02d / %d:%02d ' % (
       self.position/60, self.position % 60,
       self.duration/60, self.duration % 60)
 
-    self.osd('%s %s %s' % (
+    self.osd('%s%s%s' % (
       position,
-      self.progress_bar(self.osd_width - len(speed) - len(position) - 2),
+      self.progress_bar(self.osd_width - len(speed) - len(position)),
       speed))
 
   def seek_to(self, when):
