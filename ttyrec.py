@@ -177,6 +177,11 @@ class TTYPlayer(object):
     ttyrec.ttyplay(...arguments to TTYPlayer constructor...)
   """
 
+  class QuitException(Exception):
+    pass
+  class InvalidateFrameException(Exception):
+    pass
+
   speed = 1.0
 
   def __init__(self, ttyrec, stdin=0, stdout=1, osd_line=1, osd_width=80):
@@ -185,18 +190,14 @@ class TTYPlayer(object):
     self.osd_width = osd_width
     self.stdin = stdin
     self.stdout = stdout
-    self.clear_osd = False
 
     ttyrec.rewind()
     (self.duration, self.start, self.end) = ttyrec.ttytime()
+    self.position = 0.0
     ttyrec.rewind()
 
-  # TODO: other keybinds:
-  # space to (un)pause
-  # ,. to seek back/forward (1m?)
-  # <> to seek back/forward a lot (10m?)
-  # enter for frame advance when paused
-  # [] to seek back/forward a little (1s?)
+  ### Keybinds ###
+
   @keybind('f', '=', '+')
   def faster(self):
     self.speed *= 2.0
@@ -217,19 +218,29 @@ class TTYPlayer(object):
   def seek_forward(self):
     self.seek_to(min(self.position+60, self.duration))
 
+  pause = False
+  @keybind(' ')
+  def pause(self):
+    self.pause = not self.pause
+
   def dispatch_command(self, key):
+    """Given a key, run the corresponding key handler, then display the status
+    OSD for one second (or until another key is pressed) before resuming playback."""
     if key not in _keybinds:
       # Unknown command.
-      self.clear_osd = True
       self.osd('Unknown command: ' + key.decode('ascii'))
-      self.frame_gap = max(self.frame_gap, self.speed)
+      select([self.stdin], [], [], 1.0)
+      self.osd('')
       return
-    _keybinds[key](self)
-    self.status()
-    # Delay at least one second before resuming playback.
-    self.frame_gap = max(self.frame_gap, self.speed)
+    try:
+      _keybinds[key](self)
+    finally:
+      self.status()
+      select([self.stdin], [], [], 1.0)
+      self.osd('')
 
   def osd(self, str):
+    """Display the given string on screen."""
     # Save cursor position, then move cursor to target row and erase line.
     # \x1B[1;37;44m
     os.write(1, b'\x1B[s\x1B[%d;1H\x1B[2K' % self.osd_line)
@@ -245,7 +256,11 @@ class TTYPlayer(object):
     return ('|' + '-' * int(position) + '0' + '-' * int(width-3-position) + '|')
 
   def status(self):
-    if self.speed >= 1:
+    """Display the current status -- timestamp/duration, progress bar, and speed
+    -- using osd()."""
+    if self.pause:
+      speed = "PAUSE"
+    elif self.speed >= 1:
       speed = '%dx' % self.speed
     else:
       speed = '1/%dx' % (1.0/self.speed)
@@ -254,68 +269,88 @@ class TTYPlayer(object):
       self.position/60, self.position % 60,
       self.duration/60, self.duration % 60)
 
-    self.clear_osd = True
     self.osd('%s %s %s' % (
       position,
       self.progress_bar(self.osd_width - len(speed) - len(position) - 2),
       speed))
 
   def seek_to(self, when):
+    """Seek to the given timestamp (as seconds since the start of the file, not
+    seconds since epoch). If seeking forward, just outputs the needed frames.
+    If seeking backwards, rewinds to the beginning first to ensure that the tty
+    is consistent.
+    WARNING: seeking backwards can be extremely expensive because of this.
+    TODO: keyframe support.
+    """
     if when < self.position:
       self.ttyrec.rewind()
       self.position = 0.0
 
     for ts,data in self.ttyrec.frames():
+      self.position = ts - self.start
+      self.prev_ts = ts
       os.write(self.stdout, data)
       if ts - self.start >= when:
-        self.position = ts - self.start
-        self.frame_gap = 0
-        self.next_frame = (self.start + self.position, b'')
-        return
+        raise self.InvalidateFrameException()
 
-  def follow(self):
-    tty.setraw(self.stdout)
-    self.ttyrec.rewind()
+  prev_ts = 0.0
+  def next_frame(self):
+    """Like TTYRec.next_frame, except:
 
-    for _,data in self.ttyrec.frames():
-      os.write(self.stdout, data)
-    while True:
-      (fdin,_,_) = select([self.stdin], [], [], 0.25)
+    - it returns (time to display frame, data) instead of (absolute ts of frame, data)
+    - at EOF, it returns (0.25, b'') instead of None, to implement "follow mode"
+    """
+    frame = self.ttyrec.next_frame()
+    if frame is None:
+      self.position = self.duration
+      return (0.25, b'')
+
+    if frame[0] > self.end:
+      self.end = frame[0]
+      self.duration = self.end - self.start
+
+    duration = frame[0] - self.prev_ts
+    self.position = frame[0] - self.start
+    self.prev_ts = frame[0]
+    return (duration, frame[1])
+
+  def wait_frame(self, duration):
+    """Wait out the gap between one frame and the next. While waiting, process user input."""
+    while duration > 0:
+      now = time()
+      (fdin,_,_) = select([self.stdin], [], [], duration/self.speed)
+      if not self.pause:
+        duration -= (time() - now) * self.speed
       if fdin:
         char = os.read(self.stdin, 1)
         if char == b'q':
-          return
-      for _,data in self.ttyrec.frames():
-        os.write(self.stdout, data)
+          raise self.QuitException()
+        else:
+          self.dispatch_command(char)
 
-  def play(self):
+  def play(self, start_at=0.0):
+    """Play the contents of the file interactively."""
     tty.setraw(self.stdout)
     self.ttyrec.rewind()
-    prev_ts = self.start
+    self.pause = False
 
-    for frame in self.ttyrec.frames():
-      now = time()
-      self.next_frame = frame
-      self.position = frame[0] - self.start
-      self.frame_gap = frame[0] - prev_ts  # time until next frame should display
-      while self.frame_gap > 0:
-        (fdin,_,_) = select([self.stdin], [], [], self.frame_gap/self.speed)
-        if fdin:
-          self.frame_gap -= (time() - now)*self.speed
-          # process input from user
-          char = os.read(self.stdin, 1)
-          if char == b'q':
-            return
-          else:
-            self.dispatch_command(char)
-        else:
-          # select() timer expired, time for the next frame.
-          if self.clear_osd:
-            self.osd('')
-            self.clear_osd = False
-          break
-      os.write(self.stdout, self.next_frame[1])
-      prev_ts = self.next_frame[0]
+    try:
+      self.seek_to(start_at)
+    except self.InvalidateFrameException:
+      pass
+
+    while True:
+      frame = self.next_frame()
+      try:
+        self.wait_frame(frame[0])
+      except self.QuitException:
+        return
+      except self.InvalidateFrameException:
+        continue
+      os.write(self.stdout, frame[1])
+
+  def follow(self):
+    self.play(start_at=self.duration)
 
 
 if __name__ == "__main__":
