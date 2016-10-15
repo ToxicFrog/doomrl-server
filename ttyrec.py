@@ -218,6 +218,22 @@ class TTYPlayer(object):
   def seek_forward(self):
     self.seek_to(min(self.position+60, self.duration))
 
+  @keybind('<')
+  def seek_back_long(self):
+    self.seek_to(max(self.position-600, 0.0))
+
+  @keybind('>')
+  def seek_forward_long(self):
+    self.seek_to(min(self.position+600, self.duration))
+
+  @keybind('[')
+  def seek_back_short(self):
+    self.seek_to(max(self.position-6, 0.0))
+
+  @keybind(']')
+  def seek_forward_short(self):
+    self.seek_to(min(self.position+6, self.duration))
+
   pause = False
   @keybind(' ')
   def pause(self):
