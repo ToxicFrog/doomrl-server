@@ -11,7 +11,10 @@ from os.path import join,isdir,exists
 from collections import defaultdict
 
 # Set up paths
-_root = os.getenv('DOOMRL_SERVER') or os.path.dirname(os.path.realpath(__file__))
+_root = (
+  os.getenv('DOOMRL_SERVER')
+  or os.getenv('HOME')
+  or os.path.dirname(os.path.realpath(__file__)))
 
 # Global state
 _user = None
