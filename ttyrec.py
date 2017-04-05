@@ -10,6 +10,13 @@ from select import select
 from struct import pack,unpack
 from time import time, sleep
 
+# Note: we can embed comments in a frame using
+# OSC 50 ; "#+<comment text>" ST
+# where OSC is ESC ] and ST is ESC \
+# This works because OSC 50 ; <text> ST is "set terminal font"; "#+" as the font
+# sets it to "current font number + 0", i.e. the current font, and everything
+# after the + and optional 0 is ignored.
+
 def resetTTY(stdin=0, stdout=1):
   # Reset the TTY by sending hard and soft terminal reset strings.
   os.write(stdout, b'\x1Bc\x1B[!p')
