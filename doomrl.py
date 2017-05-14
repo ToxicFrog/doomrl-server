@@ -5,16 +5,20 @@ import json
 import os
 import re
 import subprocess
+import syslog
 import xml.etree.ElementTree as etree
 
 from os.path import join,isdir,exists
 from collections import defaultdict
 
 # Set up paths
-_root = (
-  os.getenv('DOOMRL_SERVER')
-  or os.getenv('HOME')
-  or os.path.dirname(os.path.realpath(__file__)))
+try:
+  import pwd
+  _root = pwd.getpwuid(os.getuid()).pw_dir
+  syslog.syslog('Located DoomRL data root: %s' % _root)
+except:
+  syslog.syslog("Error determining user directory; can't find data files, aborting.")
+  raise
 
 # Global state
 _user = None

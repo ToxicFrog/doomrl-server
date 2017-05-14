@@ -142,6 +142,10 @@ Let players upload and download their score.wad/player.wad/mortem files without 
 
 "There are %d other players online" banner?
 
+Properly handle OSError when (e.g.) playing ttyrecs, since sometimes we see that before we see the SIGHUP from the user disconnecting.
+
+Command line options for paths like the DoomRL program install and doomrl-server player root.
+
 ## License
 
 Copyright © 2014 Ben "ToxicFrog" Kelly
