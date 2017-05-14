@@ -44,6 +44,6 @@ function disconnected(telnet, tty) {
 
 console.log(DOOMRL_HOST)
 var telnet = Telnet(createTerminal(), connected, disconnected);
-telnet.connect(DOOMRL_HOST, DOOMRL_WS_PORT, false)
+telnet.connect(DOOMRL_HOST, DOOMRL_WS_PORT, true /* use ssl */)
 setTimeout(centerTerminal, 100)
 
