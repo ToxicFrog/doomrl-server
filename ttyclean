@@ -1,0 +1,60 @@
+#!/usr/bin/lua
+
+-- ttyclean -- clean up ttyrecs created by DoomRL
+-- usage: ttyclean in.ttyrec out.ttyrec
+
+vstruct = require "vstruct"
+
+ttyin,ttyout = ...
+
+ttyin = assert(io.open(ttyin, "rb"))
+ttyout = assert(io.open(ttyout, "wb"))
+
+function readable(str)
+  return (str:gsub(".", function(c)
+    if 0x20 <= c:byte() and c:byte() <= 0x7E then
+      return c
+    else
+      return string.format('\\x%X', c:byte())
+    end
+  end))
+end
+
+local frames = 0
+local skipped = 0
+local last_pos = ""
+local last_sgr = ""
+local last_s = os.time()
+local delta = 0
+for frame in vstruct.records("< s:u4 us:u4 data:c4", ttyin) do
+  local trimmed = frame.data:gsub("\x1B%[%d+;%d+H", function(pos)
+    -- scan for and remove no-op cursor positioning commands
+    if pos == last_pos then return "" end
+    last_pos = pos
+    return nil
+  end):gsub("\x1B%[[0-9;]+m", function(sgr)
+    -- and no-op SGR commands
+    if sgr == last_sgr then return "" end
+    last_sgr = sgr
+    return nil
+  end):gsub("\x1B%[%?7l", "") -- and all mode reset commands
+
+  if trimmed == "" then
+    skipped = skipped + 1
+  else
+    if (frame.s - delta) - last_s > 2 then
+      delta = frame.s - last_s - 1
+    end
+    frame.s = frame.s - delta
+    last_s = frame.s
+    frames = frames + 1
+    vstruct.write("< s:u4 us:u4 data:c4", ttyout, frame)
+  end
+  io.write("\r"..frames.." - "..skipped)
+end
+
+print()
+
+-- \x1B[0;40;37m
+-- \x1B[?7l
+-- \x1B[16;51H
