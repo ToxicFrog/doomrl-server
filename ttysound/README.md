@@ -20,7 +20,6 @@ There is currently no support for directionality and distance of sound, but this
   - `ttysound/`
   - `config/cc/`
   - `config/soundcc.lua`
-  - `doomrl_cc*`
 
   You should end up with `soundcc.lua` and `cc/` in the same directory as `config.lua`, not in a `config/` subdirectory.
 - Build the library:
@@ -33,7 +32,7 @@ There is currently no support for directionality and distance of sound, but this
   - `dofile "soundcc.lua"`
 
   It is important that they be in that order. (See `Settings` below for other possible values of `DeafMode`.)
-- Finally, launch DoomRL using one of the `doomrl_cc` scripts rather than the ones that come with DoomRL. If you don't use those scripts, the environment variables you need to set for closed captions to work properly are:
+- Finally, launch DoomRL using one of the `ttysound/doomrl_cc` scripts rather than the ones that come with DoomRL. If you don't use those scripts, the environment variables you need to set for closed captions to work properly are:
 
   ```
   LD_LIBRARY_PATH=ttysound/
