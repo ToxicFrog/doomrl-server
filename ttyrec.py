@@ -287,7 +287,8 @@ class TTYPlayer(object):
     finally:
       self.status()
       select([self.stdin], [], [], 1.0)
-      self.osd('')
+      if not self.pause:
+        self.osd('')
 
   def osd(self, str):
     """Display the given string on screen."""
