@@ -16,7 +16,7 @@ class DeleteCommand(Command):
     if not doomrl.user():
       return 'You must log in first.'
 
-    saves = os.listdir(doomrl.home('saves'))
+    saves = os.listdir(doomrl.homepath('saves'))
     if not name:
       # List games in progress
       if not saves:
@@ -31,7 +31,7 @@ class DeleteCommand(Command):
     if not name in saves:
       return 'No such game.'
 
-    os.remove(doomrl.home('saves', name))
-    os.remove(doomrl.home('saves', name + '.ttyrec'))
+    os.remove(doomrl.homepath('saves', name))
+    os.remove(doomrl.homepath('saves', name + '.ttyrec'))
     print('In-progress game ' + name + ' deleted.')
 

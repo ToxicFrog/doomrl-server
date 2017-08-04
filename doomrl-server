@@ -11,8 +11,17 @@ from os.path import exists
 from syslog import syslog as log
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--doomrl-path', help='Path to an unpacked DoomRL installation')
-parser.add_argument('--server-path', help='Path to doomrl-server player and configuration files')
+parser.add_argument('--doom-path',
+  type=str, required=True,
+  help='Path to an unpacked DoomRL installation')
+parser.add_argument('--data-path',
+  type=str, required=False,
+  default=os.path.dirname(os.path.realpath(__file__)),
+  help='Path to doomrl-server readonly data files; defaults to same location as `doomrl-server` script')
+parser.add_argument(
+  '--user-path',
+  type=str, required=True,
+  help='Path to store player data and generated website in')
 
 syslog.openlog('doomrl-server', facility=syslog.LOG_DAEMON)
 log('Loading...')
@@ -52,7 +61,7 @@ def sighup(sig, frame):
     # so unreliable that we probably can't match it up to a save file or
     # scoreline, so we might as well just delete it.
     try:
-      os.remove(doomrl.home('ttyrec'))
+      os.remove(doomrl.homepath('ttyrec'))
     except:
       pass
 
@@ -61,15 +70,15 @@ def main(args):
   from signal import signal,SIGHUP
   signal(SIGHUP, sighup)
 
-  doomrl.init(root=args.server_path, doomrl=args.doomrl_path)
+  doomrl.init(
+    doom=args.doom_path,
+    data=args.data_path,
+    home=args.user_path)
 
-  if exists(doomrl.path('motd')):
-    print(open(doomrl.path('motd')).read())
-  else:
-    print(open(doomrl.path('motd.default')).read())
+  print(open(doomrl.datapath('motd')).read())
 
   (cols, rows) = shutil.get_terminal_size()
-  min_rows = 26 if exists(doomrl.path('ttysound', 'libSDL_mixer-1.2.so.0')) else 25
+  min_rows = 26 if exists(doomrl.datapath('ttysound', 'libSDL_mixer-1.2.so.0')) else 25
   if int(rows) == 0 and int(cols) == 0:
     print("Warning: couldn't detect terminal size. Please make sure your terminal"
           " is at least 80x%d or the game will not display correctly." % min_rows)
@@ -80,8 +89,8 @@ def main(args):
 
   while True:
     try:
-      if exists(doomrl.path('maintenance')):
-        print(open(doomrl.path('maintenance')).read())
+      if exists(doomrl.datapath('maintenance')):
+        print(open(doomrl.datapath('maintenance')).read())
         sys.exit(0)
       [cmd, args] = argsplit(input('\n%s> ' % (doomrl.user() or 'guest')).strip())
       if not cmd:

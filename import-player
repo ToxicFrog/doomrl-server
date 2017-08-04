@@ -11,7 +11,7 @@ from os.path import join
 import doomrl
 
 def install_wad(wad):
-  shutil.copy(wad, doomrl.home())
+  shutil.copy(wad, doomrl.homepath())
 
 # This is where the magic happens. We need to read the mortems, and match
 # each mortem we find to a high score list entry. We can easily extract
@@ -26,7 +26,7 @@ def install_mortems(mortems):
   print('importing DoomRL mortem directory and linking with scores')
   scores = doomrl.raw_scores()
   for (n,file) in enumerate(sorted([file for file in os.listdir(mortems) if file.startswith('[')])):
-    shutil.copy(join(mortems, file), doomrl.home('archive', '%d.mortem' % (n+1)))
+    shutil.copy(join(mortems, file), doomrl.homepath('archive', '%d.mortem' % (n+1)))
     mortem = doomrl.parse_mortem(n+1)
 
     if not mortem['name'] or not mortem['score']:
@@ -47,7 +47,7 @@ def install_mortems(mortems):
       print('%d: %d candidates, writing duplicate scorelines, please edit and correct' % (n+1, len(candidates)))
       print(mortem.get('killed'), [x['killed'] for x in candidates])
 
-    with open(doomrl.home('archive', 'scores'), 'a') as fd:
+    with open(doomrl.homepath('archive', 'scores'), 'a') as fd:
       for score in candidates:
         score['n'] = n+1
         fd.write(json.dumps(score) + '\n')
@@ -57,7 +57,7 @@ def import_scores():
   # what order the score entries were written in. We settle for ordering them
   # by increasing score.
   print('importing DoomRL score list')
-  with open(doomrl.home('archive', 'scores'), "a") as fd:
+  with open(doomrl.homepath('archive', 'scores'), "a") as fd:
     for (n,score) in enumerate(sorted(doomrl.raw_scores(), key=lambda x: x['score'])):
       score['n'] = n+1
       score['charname'] = score['name']
@@ -85,8 +85,8 @@ def main(_, name, player_wad, scores_wad=None, mortems=None):
     print('importing score.wad')
     install_wad(scores_wad)
     # Clear existing archive directory
-    shutil.rmtree(doomrl.home('archive'))
-    os.mkdir(doomrl.home('archive'))
+    shutil.rmtree(doomrl.homepath('archive'))
+    os.mkdir(doomrl.homepath('archive'))
     if mortems:
       install_mortems(mortems)
     else:

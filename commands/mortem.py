@@ -21,7 +21,7 @@ class MortemCommand(Command):
 
   def mortems(self, player):
     return [game for game in doomrl.games(player)
-            if exists(doomrl.home('archive', '%d.mortem' % game['n'], user=player))]
+            if exists(doomrl.homepath('archive', '%d.mortem' % game['n'], user=player))]
 
   def list_players(self):
     """List all players with mortems, and how many."""
@@ -48,14 +48,14 @@ class MortemCommand(Command):
       except:
         return 'Invalid mortem ID.'
 
-    mortem = doomrl.home('archive', '%d.mortem' % id, user=player)
+    mortem = doomrl.homepath('archive', '%d.mortem' % id, user=player)
     if not exists(mortem):
       return 'No mortem with that ID found for that player.'
 
     try:
       subprocess.call(
         ['less', '-d', '-M', mortem],
-        cwd=doomrl.home('archive', user=player),
+        cwd=doomrl.homepath('archive', user=player),
         env={**os.environ, 'LESSSECURE': '1'})
     except KeyboardInterrupt:
       pass

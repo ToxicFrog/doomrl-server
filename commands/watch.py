@@ -29,13 +29,13 @@ class WatchCommand(Command):
       # list active games
       print('   TIME PLAYER')
       for player in doomrl.all_users():
-        if exists(doomrl.home('ttyrec', user=player)):
-          with TTYRec(path=doomrl.home('ttyrec', user=player)) as ttyrec:
+        if exists(doomrl.homepath('ttyrec', user=player)):
+          with TTYRec(path=doomrl.homepath('ttyrec', user=player)) as ttyrec:
             print("%7s %s" % (str(timedelta(seconds=int(ttyrec.ttytime()[0]))), player))
       return
 
-    if not exists(doomrl.home('ttyrec', user=player)):
+    if not exists(doomrl.homepath('ttyrec', user=player)):
       return 'No game in progress under that name.'
 
-    with TTYRec(doomrl.home('ttyrec', user=player)) as ttyrec:
+    with TTYRec(doomrl.homepath('ttyrec', user=player)) as ttyrec:
       ttyrec.ttyplay(follow=True)

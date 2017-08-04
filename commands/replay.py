@@ -28,7 +28,7 @@ class ReplayCommand(Command):
 
   def replays(self, player):
     return [game for game in doomrl.games(player)
-            if exists(doomrl.home('archive', '%d.ttyrec' % game['n'], user=player))]
+            if exists(doomrl.homepath('archive', '%d.ttyrec' % game['n'], user=player))]
 
   def list_players(self):
     """List all players with recordings, and how many."""
@@ -62,7 +62,7 @@ class ReplayCommand(Command):
       except:
         return 'Invalid replay ID.'
 
-    replay = doomrl.home('archive', '%d.ttyrec' % id, user=player)
+    replay = doomrl.homepath('archive', '%d.ttyrec' % id, user=player)
     if not exists(replay):
       return 'No replay with that ID found for that player.'
 

@@ -31,11 +31,11 @@ class PlayCommand(Command):
 
   def setup(self, name):
     # If the player has a game in progress, restore their ttyrec and save.
-    if exists(doomrl.home('saves', name + '.ttyrec')):
-      os.rename(doomrl.home('saves', name + '.ttyrec'), self.recfile)
+    if exists(doomrl.homepath('saves', name + '.ttyrec')):
+      os.rename(doomrl.homepath('saves', name + '.ttyrec'), self.recfile)
       print('Recording of current game restored.')
-    if exists(doomrl.home('saves', name)):
-      os.rename(doomrl.home('saves', name), doomrl.home('save'))
+    if exists(doomrl.homepath('saves', name)):
+      os.rename(doomrl.homepath('saves', name), doomrl.homepath('save'))
 
     # Get their pre-game high scores so we can check for new ones afterwards.
     scores_before = doomrl.raw_scores()
@@ -47,11 +47,11 @@ class PlayCommand(Command):
     return (scores_before,mortem_before)
 
   def run_doomrl(self):
-    if exists(doomrl.path('ttysound', 'libSDL_mixer-1.2.so.0')):
+    if exists(doomrl.datapath('ttysound', 'libSDL_mixer-1.2.so.0')):
       cmd = ['./doomrl']
       env = {
         **os.environ,
-        "LD_LIBRARY_PATH": doomrl.path('ttysound'),
+        "LD_LIBRARY_PATH": doomrl.datapath('ttysound'),
         "SDL_AUDIODRIVER": 'disk',
         'SDL_DISKAUDIOFILE': '/dev/null',
       }
@@ -60,7 +60,7 @@ class PlayCommand(Command):
       env = os.environ
 
     (rpipe,wpipe) = os.pipe()
-    child = subprocess.Popen(cmd, stdout=wpipe, env=env, cwd=doomrl.home())
+    child = subprocess.Popen(cmd, stdout=wpipe, env=env, cwd=doomrl.homepath())
     os.close(wpipe)
 
     # DoomRL needs the terminal in raw mode, but since it's running inside ttyrec
@@ -79,7 +79,7 @@ class PlayCommand(Command):
 
     if not name:
       # List games in progress
-      saves = os.listdir(doomrl.home('saves'))
+      saves = os.listdir(doomrl.homepath('saves'))
       if not saves:
         print('You have no games in progress.')
       else:
@@ -95,7 +95,7 @@ class PlayCommand(Command):
       return 'Invalid save name.'
 
     # Check that they aren't already playing *right now*.
-    self.recfile = doomrl.home('ttyrec')
+    self.recfile = doomrl.homepath('ttyrec')
     if exists(self.recfile):
       return 'You are already playing in another window! Quit that game first.'
 
@@ -112,9 +112,9 @@ class PlayCommand(Command):
 
   def shutdown(self, name, scores_before, mortem_before):
     # If the game is still in progress, save the ttyrec file.
-    if exists(doomrl.home('save')):
-      os.rename(self.recfile, doomrl.home('saves', name + '.ttyrec'))
-      os.rename(doomrl.home('save'), doomrl.home('saves', name))
+    if exists(doomrl.homepath('save')):
+      os.rename(self.recfile, doomrl.homepath('saves', name + '.ttyrec'))
+      os.rename(doomrl.homepath('save'), doomrl.homepath('saves', name))
       return
 
     # Otherwise, there *should* be a new high score entry and a new mortem.
@@ -134,8 +134,8 @@ class PlayCommand(Command):
 
     # Save the ttyrec and mortem files to the player archive directory.
     os.rename(self.recfile,
-              doomrl.home('archive', '%d.ttyrec' % n))
-    shutil.copy(doomrl.home('mortem', mortem),
-                doomrl.home('archive', '%d.mortem' % n))
+              doomrl.homepath('archive', '%d.ttyrec' % n))
+    shutil.copy(doomrl.homepath('mortem', mortem),
+                doomrl.homepath('archive', '%d.mortem' % n))
 
     doomrl.build_website('www')

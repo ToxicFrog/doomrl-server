@@ -24,6 +24,11 @@ class ConfigCommand(Command):
 
   nargs = 2
 
+  def reset(self, file):
+    print('Restoring %s to defaults.' % file)
+    shutil.copy(doomrl.datapath('config', "%s.lua" % file), doomrl.homepath("%.lua" % file))
+
+
   def run(self, file, reset):
     if not doomrl.user():
       return 'You must be logged in.'
@@ -34,26 +39,19 @@ class ConfigCommand(Command):
     files = frozenset(['controls', 'colours', 'user'])
 
     if reset and file == "all":
-      print("Restoring default configuration files.")
-      for file in os.listdir(doomrl.path('config')):
-        shutil.copy(doomrl.path('config', file), doomrl.home(file))
-      with open(doomrl.home('config.lua'), 'a') as config:
-        config.write('AlwaysName = "%s"\n' % doomrl.user())
+      for file in files:
+        reset(file)
       return
 
-    if not file:
+    if not file or file not in files:
       print('Try "config <controls|colours|user>" or "help config".')
       return
 
-    if file not in files:
-      return 'Unknown file -- see "help config".'
-
     if reset:
-      print('Restoring %s.lua to defaults.')
-      shutil.copy(doomrl.path('config', '%s.lua' % file), doomrl.home())
+      reset(file)
       return
 
     # Use Nano in secure mode to edit the file.
     subprocess.call(
-      ['nano', '-R', doomrl.home('%s.lua' % file)])
+      ['nano', '-R', doomrl.homepath('%s.lua' % file)])
 

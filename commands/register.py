@@ -20,21 +20,29 @@ class RegisterCommand(Command):
 
   nargs = 2
 
-  def install(self, home, name, password):
+  def install(self, password):
     """Install a personal copy of DoomRL to the given path."""
-    # The player gets symlinks to the doomrl binary and wad files. They get
-    # their own personal backup, mortem, screenshot, and recording directories,
-    # and their own personal config files (so that they can be edited).
+
+    # Symlink in the DoomRL binary and WADs.
     for file in ['core.wad', 'doomrl', 'doomrl.wad']:
-      os.symlink(doomrl.doomrl_path(file), doomrl.home(file, user=name))
+      os.symlink(doomrl.doompath(file), doomrl.homepath(file))
+
+    # Copy in the user-editable config files, then symlink in all the rest.
     for file in ['colours.lua', 'controls.lua', 'user.lua']:
-      shutil.copy(doomrl.path('config', file), doomrl.home(file, user=name))
-    for file in os.listdir(doomrl.path('config')):
-      if not exists(doomrl.home(file, user=name)):
-        os.symlink(doomrl.path('config', file), doomrl.home(file, user=name))
+      shutil.copy(doomrl.datapath('config', file), doomrl.homepath(file))
+    for file in os.listdir(doomrl.datapath('config')):
+      if not exists(doomrl.homepath(file)):
+        os.symlink(doomrl.datapath('config', file), doomrl.homepath(file))
+
+    # Create directories for save files, postmortems, etc.
     for dir in ['backup', 'mortem', 'screenshot', 'saves', 'archive']:
-      os.mkdir(join(home, dir))
-    with open(join(home, 'passwd'), 'w') as passwd:
+      os.mkdir(doomrl.homepath(dir))
+
+    # Write the password file.
+    # No hashing or anything. This whole thing is fundamentally insecure, adding
+    # a hash would just make it less obviously insecure without actually fixing
+    # anything.
+    with open(doomrl.homepath('passwd'), 'w') as passwd:
       passwd.write(password)
 
 
@@ -48,9 +56,8 @@ class RegisterCommand(Command):
       return 'No password specified.'
 
     # Try to create user directory and die if we can't
-    home = doomrl.home(user=name)
     try:
-      os.mkdir(home)
+      os.mkdir(doomrl.homepath(user=name))
     except OSError as e:
       return 'That name is unavailable.'
 
@@ -58,21 +65,20 @@ class RegisterCommand(Command):
     log('Creating a new account: %s' % name)
     print('Creating user account.')
     try:
-      self.install(home, name, password)
+      doomrl.login(name)
+      self.install(password)
     except Exception as e:
+      doomrl.login()
       log('Error creating account %s: %s' % (name, e))
       print('Error creating user directory.')
       print('Report this to the server administrator.')
       if doomrl.debug():
         raise e
       try:
-        shutil.rmtree(home)
+        shutil.rmtree(doomrl.homepath(user=name))
       except OSError as e:
         log('Error cleaning up account %s: %s' % (name, e))
         print('Error cleaning up the half-created user directory! This username is unavailable until the admin fixes things.')
-      finally:
-        doomrl.login()
-        return 'Unable to create user.'
+      return 'Unable to create user.'
 
-    # Login
-    return run_command('login', '%s %s' % (name, password))
+    return

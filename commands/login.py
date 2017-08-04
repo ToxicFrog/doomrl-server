@@ -19,7 +19,7 @@ class LoginCommand(Command):
 
     # Check password
     try:
-      with open(doomrl.home('passwd', user=name)) as f:
+      with open(doomrl.homepath('passwd', user=name)) as f:
         passwd = f.read()
       if passwd == password:
         log('%s successfully logged in.' % name)

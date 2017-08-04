@@ -12,32 +12,43 @@ from os.path import join,isdir,exists
 from collections import defaultdict
 
 # Global state
-_root = None
-_doomrl_path = None
-_user = None
-_home = None
+_doom_path = None  # Path to DoomRL installation (e.g. /opt/doomrl)
+_data_path = None  # Path to doomrl-server installation (e.g /usr/share/doomrl-server)
+_home_path = None  # Path to doomrl-server state (e.g. /srv/doomrl-server)
 
-def init(root, doomrl):
-  assert (root and doomrl), "DoomRL-server initialization error: root=%s, doomrl=%s" % (root, doomrl)
-  global _root, _doomrl_path
-  _root = root
-  _doomrl_path = doomrl
-  syslog.syslog('DoomRL binary install path: %s' % _doomrl_path)
-  syslog.syslog('DoomRL server data path: %s' % _root)
+_user = None  # Name of currently logged in user, if any.
+
+def init(doom, data, home):
+  assert (doom and data and home), "DoomRL-server initialization error: root=%s, doomrl=%s" % (root, doomrl)
+  global _doom_path,_data_path,_home_path
+  _doom_path = doom
+  _data_path = data
+  _home_path = home
+  syslog.syslog('DoomRL binary install path: %s' % _doom_path)
+  syslog.syslog('DoomRL server data path: %s' % _data_path)
+  syslog.syslog('DoomRL player data path: %s' % _home_path)
 
 def debug():
-  return exists(path('debug')) or (_user and exists(home('debug')))
+  """Return true if the logged in user has debug privileges (or if the entire server
+  is in debug mode)."""
+  return exists(datapath('debug')) or (_user and exists(homepath('debug')))
 
-# Path manipulation
-def path(*args):
-  return join(_root, *args)
+def datapath(*args):
+  """Return path to a doomrl-server data file. If the file exists in _home_path,
+  returns the path to that; otherwise returns the path to the file in _data_path.
+  This allows the server administrator to override, e.g., the motd without needing
+  to edit the doomrl-server install itself."""
+  if exists(join(_home_path, *args)):
+    return join(_home_path, *args)
+  return join(_data_path, *args)
 
-def doomrl_path(*args):
-  return join(_doomrl_path, *args)
+def doompath(*args):
+  return join(_doom_path, *args)
 
-def home(*args, user=None):
-  user = user or _user
-  return join(_root, 'players', user, *args)
+def homepath(*args, user=None):
+  if user is None:
+    user = _user
+  return join(_home_path, 'players', user, *args)
 
 # User manipulation
 def name_valid(name):
@@ -46,13 +57,11 @@ def name_valid(name):
 
 def login(user=None):
   """Log in (or, with no args, out)"""
-  global _user,_home
+  global _user
   if not user:
     _user = None
-    _home = None
   else:
     _user = user
-    _home = home(user=user)
 
 def user():
   return _user
@@ -60,18 +69,18 @@ def user():
 def all_users():
   """A list of all doomrl-server users."""
   return sorted([
-    p for p in os.listdir(path('players'))
-    if isdir(home(user=p)) and not p.startswith('.')])
+    p for p in os.listdir(homepath(user=''))
+    if isdir(homepath(user=p)) and not p.startswith('.')])
 
 def user_exists(user):
   """Check if a player exists."""
-  return isdir(home(user=user))
+  return isdir(homepath(user=user))
 
 
 # Access to DoomRL data
 def raw_mortems(user=None):
   """The contents of the user's DoomRL mortems directory."""
-  return sorted(os.listdir(home('mortem', user=(user or _user))))
+  return sorted(os.listdir(homepath('mortem', user=(user or _user))))
 
 def raw_scores(user=None):
   """The contents of the user's score.wad."""
@@ -85,7 +94,7 @@ def raw_scores(user=None):
     return node
 
   try:
-    with gzip.open(home('score.wad', user=user)) as fd:
+    with gzip.open(homepath('score.wad', user=user)) as fd:
       xml = etree.parse(fd)
     return [fixtypes(entry.attrib) for entry in xml.getroot().findall('entry')]
   except FileNotFoundError:
@@ -170,7 +179,7 @@ matchers = {
 }
 
 def parse_mortem(n, user=None):
-  data = open(home('archive', '%d.mortem' % n, user=user), 'r').read().split('\n')
+  data = open(homepath('archive', '%d.mortem' % n, user=user), 'r').read().split('\n')
   mortem = { 'n': n, 'name': user }
 
   for line in data:
@@ -187,7 +196,7 @@ def games(user=None):
   user = user or _user
   return [
     parse_mortem(int(filename.replace('.mortem', '')), user=user)
-    for filename in os.listdir(home('archive', user=user))
+    for filename in os.listdir(homepath('archive', user=user))
     if filename.endswith('.mortem')
   ]
 
@@ -244,11 +253,11 @@ _HEADER = (
 _FOOTER = '</pre></div></body></html>'
 
 def path_to(user, type, game):
-  return home('archive', '%d.%s' % (game['n'], type), user=user)
+  return homepath('archive', '%d.%s' % (game['n'], type), user=user)
 
 def link_to(www, user, file):
   dst = join(www, 'players', user, file)
-  src = home('archive', file, user=user)
+  src = homepath('archive', file, user=user)
   if exists(dst):
     return True
   if exists(src):
@@ -305,10 +314,7 @@ def build_website(www):
   all_games.sort(reverse=True, key=lambda s: int(s['score']))
   with open(join(www, 'index.html'), 'w') as fd:
     fd.write(_HEADER)
-    if exists(path('webmotd')):
-      fd.write(open(path('webmotd'), 'r').read())
-    else:
-      fd.write(open(path('webmotd.default'), 'r').read())
+    fd.write(open(datapath('webmotd'), 'r').read())
     fd.write('<hr>\n<div style="text-align:center">'
              '[<a href="players/index.html">By Player</a>]'
              '[<a href="deaths.html">Top Deaths</a>]'
