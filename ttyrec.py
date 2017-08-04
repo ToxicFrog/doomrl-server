@@ -18,8 +18,8 @@ from time import time, sleep
 # after the + and optional 0 is ignored.
 
 def resetTTY(stdin=0, stdout=1):
-  # Reset the TTY by sending hard and soft terminal reset strings.
-  os.write(stdout, b'\x1Bc\x1B[!p')
+  # Reset the TTY by sending hard and soft terminal reset strings and "clear screen".
+  os.write(stdout, b'\x1B[?1049l\x1Bc\x1B[!p\x1B[2J')
   # Reset the TTY controller using termios. This should be roughly equivalent to 'stty cooked'.
   attr = termios.tcgetattr(stdin)
   attr[0] |= termios.BRKINT | termios.IGNPAR | termios.ISTRIP | termios.ICRNL | termios.IXON
@@ -321,12 +321,18 @@ class TTYPlayer(object):
     """Like TTYRec.next_frame, except:
 
     - it returns (time to display frame, data) instead of (absolute ts of frame, data)
-    - at EOF, it returns (0.25, b'') instead of None, to implement "follow mode"
+    - at EOF, it returns (0.25, b'') if in follow mode, and an "end of recording"
+      message otherwise.
     """
     frame = self.ttyrec.next_frame()
     if frame is None:
       self.position = self.duration
-      return (0.25, b'')
+      # Enable alternate screen buffer (since the end of the ttyrec may have
+      # turned it off) and hide cursor.
+      # Then display the "end of recording" message.
+      return (0.25,
+        b'\x1B[?1049h\x1B[?25l'
+        b'\x1B[8;8HEND OF RECORDING')
 
     if frame[0] > self.end:
       self.end = frame[0]
