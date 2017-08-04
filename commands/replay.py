@@ -15,12 +15,8 @@ class ReplayCommand(Command):
 
   You can also use "latest" to view the latest replay for that player.
 
-  Replay controls:
-    f or +: go faster
-    s or -: go slower
-    1: reset speed
-    , and .: seek backward or forward 1 minute
-    q: exit replay
+  When watching a replay, press '?' to view the replay controls. Press 'q' at
+  any time to exit the replay.
   """
 
   nargs = 2

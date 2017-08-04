@@ -17,6 +17,25 @@ from time import time, sleep
 # sets it to "current font number + 0", i.e. the current font, and everything
 # after the + and optional 0 is ignored.
 
+TTYREC_HELP_TEXT = """
+Replay Mode Controls:
+
+ '?'  help
+ 'f'  faster
+ 's'  slower
+ '1'  actual speed
+ '['  back 6s
+ ','  back 1m
+ '<'  back 10m
+ ']'  forward 6s
+ '.'  forward 1m
+ '>'  forward 10m
+ ' '  pause
+ 'q'  quit
+
+Press any key to resume playback.
+"""
+
 def resetTTY(stdin=0, stdout=1):
   # Reset the TTY by sending hard and soft terminal reset strings and "clear screen".
   os.write(stdout, b'\x1B[?1049l\x1Bc\x1B[!p\x1B[2J')
@@ -246,6 +265,14 @@ class TTYPlayer(object):
   def pause(self):
     self.pause = not self.pause
 
+  @keybind('?')
+  def help(self):
+    os.write(self.stdout, b'\x1B[1047l\x1B[2J')
+    print(TTYREC_HELP_TEXT.replace('\n', '\r\n'))
+    os.read(self.stdin, 1)
+    os.write(self.stdout, b'\x1B[2J\x1B[1047h')
+    raise self.InvalidateFrameException
+
   def dispatch_command(self, key):
     """Given a key, run the corresponding key handler, then display the status
     OSD for one second (or until another key is pressed) before resuming playback."""
@@ -327,12 +354,15 @@ class TTYPlayer(object):
     frame = self.ttyrec.next_frame()
     if frame is None:
       self.position = self.duration
-      # Enable alternate screen buffer (since the end of the ttyrec may have
-      # turned it off) and hide cursor.
-      # Then display the "end of recording" message.
-      return (0.25,
-        b'\x1B[?1049h\x1B[?25l'
-        b'\x1B[8;8HEND OF RECORDING')
+      if self.following:
+        return (0.25, b'')
+      else:
+        # Enable alternate screen buffer (since the end of the ttyrec may have
+        # turned it off) and hide cursor.
+        # Then display the "end of recording" message.
+        return (0.25,
+          b'\x1B[?1049h\x1B[?25l'
+          b'\x1B[8;8HEND OF RECORDING')
 
     if frame[0] > self.end:
       self.end = frame[0]
@@ -379,7 +409,9 @@ class TTYPlayer(object):
       os.write(self.stdout, frame[1])
 
   def follow(self):
+    self.following = True
     self.play(start_at=self.duration)
+    self.following = False
 
 
 if __name__ == "__main__":

@@ -14,11 +14,11 @@ class WatchCommand(Command):
 
   The replay has an initial 'catch-up' phase where it replays the game so far
   at 64x normal speed. During this period the normal replay controls (see
-  "help replay") will work. At any point you can exit spectator mode with ctrl-C.
+  "help replay") will work. At any point you can exit spectator mode with 'q'.
 
   If the person you are spectating exits, the screen will go black and won't
   automatically return to the prompt -- this is a limitation of the underlying
-  software used for replays. Once this happens, press ctrl-C to exit.
+  software used for replays. Once this happens, press 'q' to exit.
   """
 
   nargs = 1
