@@ -112,9 +112,9 @@ Holds the static web scoreboard. Regenerated every time a game is finished.
 
 If a file exists in the players directory, it will block players of that name from being created. The server comes with a `guest` file.
 
-    motd
+    motd, webmotd
 
-The contents if this file, if present in the root directory of the server, will be displayed to each user upon connection. The default contains a DOOM banner.
+The contents if these files, if present in the root directory of the server, will be displayed to users upon connection via telnet (for `motd`) or at the top of the webpage (for `webmotd`). `motd.default` and `webmotd.default` contain the default values (ASCII-art DOOM banners).
 
     maintenance
 
@@ -144,7 +144,7 @@ Let players upload and download their score.wad/player.wad/mortem files without 
 
 Properly handle OSError when (e.g.) playing ttyrecs, since sometimes we see that before we see the SIGHUP from the user disconnecting.
 
-Command line options for paths like the DoomRL program install and doomrl-server player root.
+`savescum` command to restore old save files (probably marking those games non-scoring or storing them in a separate scores file).
 
 ## License
 
