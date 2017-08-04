@@ -217,7 +217,7 @@ def show_scores(scores, time='time'):
   less = subprocess.Popen(
     ['less', '-R', '-S'],
     universal_newlines=True,
-    env={'LESSSECURE': '1', 'TERM': os.getenv('TERM')},
+    env={**os.environ, 'LESSSECURE': '1'},
     stdin=subprocess.PIPE)
   for score in scores:
     less.stdin.write(scoreline(score, time) + '\n')

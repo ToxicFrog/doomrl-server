@@ -50,14 +50,14 @@ class PlayCommand(Command):
     if exists(doomrl.path('ttysound', 'libSDL_mixer-1.2.so.0')):
       cmd = ['./doomrl']
       env = {
+        **os.environ,
         "LD_LIBRARY_PATH": doomrl.path('ttysound'),
         "SDL_AUDIODRIVER": 'disk',
         'SDL_DISKAUDIOFILE': '/dev/null',
-        'TERM': os.getenv('TERM'),
       }
     else:
       cmd = ['./doomrl', '-nosound']
-      env = { 'TERM': os.getenv('TERM') }
+      env = os.environ
 
     (rpipe,wpipe) = os.pipe()
     child = subprocess.Popen(cmd, stdout=wpipe, env=env, cwd=doomrl.home())

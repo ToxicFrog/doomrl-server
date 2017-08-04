@@ -56,10 +56,7 @@ class MortemCommand(Command):
       subprocess.call(
         ['less', '-d', '-M', mortem],
         cwd=doomrl.home('archive', user=player),
-        env={
-          'LESSSECURE': '1',
-          'TERM': os.getenv('TERM')
-        })
+        env={**os.environ, 'LESSSECURE': '1'})
     except KeyboardInterrupt:
       pass
 
