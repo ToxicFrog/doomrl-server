@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+#
+# Fix user symlinks. Use when the doom-path or data-path has been changed.
+#
+# usage: fix-symlinks <doom-path> <data-path> <user-path>
+
+set -e
+
+DOOM_PATH="${1?missing DOOM_PATH}"
+DATA_PATH="${2?missing DATA_PATH}"
+USER_PATH="${3?missing USER_PATH}"
+
+if [[ $DRY_RUN ]]; then
+  function ln() { echo "$@"; }
+fi
+
+cd "$USER_PATH/players"
+for player in */; do
+  pushd "$player"
+  for file in doomrl core.wad doomrl.wad; do
+    ln -vsf "$DOOM_PATH/$file" "$file"
+  done
+  for file in $(ls "$DATA_PATH/config"); do
+    [[ -L "$file" ]] && ln -vsf "$DATA_PATH/config/$file" "$file"
+  done
+  popd
+done
