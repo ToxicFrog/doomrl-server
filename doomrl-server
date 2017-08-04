@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import os
 import readline
 import shutil  # for get_terminal_size
@@ -8,6 +9,10 @@ import syslog
 
 from os.path import exists
 from syslog import syslog as log
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--doomrl-path', help='Path to an unpacked DoomRL installation')
+parser.add_argument('--server-path', help='Path to doomrl-server player and configuration files')
 
 syslog.openlog('doomrl-server', facility=syslog.LOG_DAEMON)
 log('Loading...')
@@ -52,9 +57,11 @@ def sighup(sig, frame):
       pass
 
 
-def main():
+def main(args):
   from signal import signal,SIGHUP
   signal(SIGHUP, sighup)
+
+  doomrl.init(root=args.server_path, doomrl=args.doomrl_path)
 
   if exists(doomrl.path('motd')):
     print(open(doomrl.path('motd')).read())
@@ -99,4 +106,4 @@ def main():
   print('Goodbye!')
 
 if __name__ == '__main__':
-  main()
+  main(parser.parse_args())

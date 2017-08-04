@@ -26,12 +26,12 @@ class RegisterCommand(Command):
     # their own personal backup, mortem, screenshot, and recording directories,
     # and their own personal config files (so that they can be edited).
     for file in ['core.wad', 'doomrl', 'doomrl.wad']:
-      os.symlink(join('../../doomrl', file), doomrl.home(file, user=name))
+      os.symlink(doomrl.doomrl_path(file), doomrl.home(file, user=name))
     for file in ['colours.lua', 'controls.lua', 'user.lua']:
       shutil.copy(doomrl.path('config', file), doomrl.home(file, user=name))
     for file in os.listdir(doomrl.path('config')):
       if not exists(doomrl.home(file, user=name)):
-        os.symlink(join('../../config', file), doomrl.home(file, user=name))
+        os.symlink(doomrl.path('config', file), doomrl.home(file, user=name))
     for dir in ['backup', 'mortem', 'screenshot', 'saves', 'archive']:
       os.mkdir(join(home, dir))
     with open(join(home, 'passwd'), 'w') as passwd:

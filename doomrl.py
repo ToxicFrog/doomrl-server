@@ -11,18 +11,19 @@ import xml.etree.ElementTree as etree
 from os.path import join,isdir,exists
 from collections import defaultdict
 
-# Set up paths
-try:
-  import pwd
-  _root = pwd.getpwuid(os.getuid()).pw_dir
-  syslog.syslog('Located DoomRL data root: %s' % _root)
-except:
-  syslog.syslog("Error determining user directory; can't find data files, aborting.")
-  raise
-
 # Global state
+_root = None
+_doomrl_path = None
 _user = None
 _home = None
+
+def init(root, doomrl):
+  assert (root and doomrl), "DoomRL-server initialization error: root=%s, doomrl=%s" % (root, doomrl)
+  global _root, _doomrl_path
+  _root = root
+  _doomrl_path = doomrl
+  syslog.syslog('DoomRL binary install path: %s' % _doomrl_path)
+  syslog.syslog('DoomRL server data path: %s' % _root)
 
 def debug():
   return exists(path('debug')) or (_user and exists(home('debug')))
@@ -30,6 +31,9 @@ def debug():
 # Path manipulation
 def path(*args):
   return join(_root, *args)
+
+def doomrl_path(*args):
+  return join(_doomrl_path, *args)
 
 def home(*args, user=None):
   user = user or _user
