@@ -1,6 +1,5 @@
 import doomrl
 import os
-import subprocess
 
 from commands import Command
 from os.path import exists

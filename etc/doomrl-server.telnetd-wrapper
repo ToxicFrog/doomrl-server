@@ -1,0 +1,9 @@
+#!/bin/sh
+# in.telnetd doesn't let us pass arguments to the login handler, so we have this
+# wrapper script.
+
+/usr/share/doomrl-server/doomrl-server \
+  --doom-path=/opt/doomrl \
+  --data-path=/usr/share/doomrl-server \
+  --user-path=/srv/doomrl
+
