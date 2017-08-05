@@ -10,7 +10,9 @@ import syslog
 from os.path import exists
 from syslog import syslog as log
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(add_help=False)
+parser.add_argument('-h', help='no-op; for compatibility with in.telnetd')
+parser.add_argument('-p', action='store_true', help='no-op; for compatibility with in.telnetd')
 parser.add_argument('--conf-path',
   type=str, required=False,
   default='/etc/doomrl-server.conf',
