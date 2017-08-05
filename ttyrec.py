@@ -363,7 +363,8 @@ class TTYPlayer(object):
         # Then display the "end of recording" message.
         return (0.25,
           b'\x1B[?1049h\x1B[?25l'
-          b'\x1B[8;8HEND OF RECORDING')
+          b'\x1B[8;8HEND OF RECORDING'
+          b'\x1B[9;8PRESS ? FOR HELP OR Q TO QUIT')
 
     if frame[0] > self.end:
       self.end = frame[0]
