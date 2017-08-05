@@ -82,9 +82,9 @@ def readconfig(args):
       if line
     ]
   }
-  args.doom_path = conf.get('doom_path', args.doom_path)
-  args.data_path = conf.get('data_path', args.data_path)
-  args.user_path = conf.get('user_path', args.user_path)
+  args.doom_path = args.doom_path or conf['doom_path']
+  args.data_path = args.data_path or conf['data_path']
+  args.user_path = args.user_path or conf['user_path']
   return args
 
 def main(args):
