@@ -11,8 +11,12 @@ from os.path import exists
 from syslog import syslog as log
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--conf-path',
+  type=str, required=False,
+  default='/etc/doomrl-server.conf',
+  help='Path to doomrl-server configuration file.')
 parser.add_argument('--doom-path',
-  type=str, required=True,
+  type=str, required=False,
   help='Path to an unpacked DoomRL installation')
 parser.add_argument('--data-path',
   type=str, required=False,
@@ -20,7 +24,7 @@ parser.add_argument('--data-path',
   help='Path to doomrl-server readonly data files; defaults to same location as `doomrl-server` script')
 parser.add_argument(
   '--user-path',
-  type=str, required=True,
+  type=str, required=False,
   help='Path to store player data and generated website in')
 
 syslog.openlog('doomrl-server', facility=syslog.LOG_DAEMON)
@@ -65,10 +69,27 @@ def sighup(sig, frame):
     except:
       pass
 
+def readconfig(args):
+  conf = {
+    line[0]: line[1]
+    for line
+    in [
+      line.strip().split(None, 1)
+      for line
+      in open(args.conf_path, 'r').read().split('\n')
+      if line
+    ]
+  }
+  args.doom_path = conf.get('doom_path', args.doom_path)
+  args.data_path = conf.get('data_path', args.data_path)
+  args.user_path = conf.get('user_path', args.user_path)
+  return args
 
 def main(args):
   from signal import signal,SIGHUP
   signal(SIGHUP, sighup)
+
+  args = readconfig(args)
 
   doomrl.init(
     doom=args.doom_path,
