@@ -13,7 +13,7 @@ from collections import defaultdict
 
 # Global state
 _doom_path = None  # Path to DoomRL installation (e.g. /opt/doomrl)
-_data_path = None  # Path to doomrl-server installation (e.g /usr/share/doomrl-server)
+_data_path = None  # Path to doomrl-server installation (e.g /usr/src/doomrl-server)
 _user_path = None  # Path to doomrl-server state (e.g. /srv/doomrl-server)
 
 _user = None  # Name of currently logged in user, if any.

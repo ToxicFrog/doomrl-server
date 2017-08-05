@@ -6,7 +6,7 @@ service doomrl-server
         user            = doomrl
         group           = nogroup
         server          = /usr/sbin/in.telnetd
-        server_args     = -h -L /usr/share/doomrl-server/doomrl-server
+        server_args     = -h -L /usr/src/doomrl-server/doomrl-server
         port            = 3666
         type            = UNLISTED
 }

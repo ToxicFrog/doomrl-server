@@ -2,8 +2,8 @@
 Description=Tiny HTTP Daemon (serving DoomRL-server website)
 
 [Service]
-PIDFile=/var/lib/doomrl/thttpd.pid
-ExecStart=/usr/sbin/thttpd -D -C /var/lib/doomrl/thttpd.conf
+PIDFile=/srv/doomrl/thttpd.pid
+ExecStart=/usr/sbin/thttpd -D -C /usr/src/doomrl-server/etc/thttpd.conf
 Restart=always
 
 [Install]

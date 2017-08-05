@@ -10,6 +10,8 @@ A `nethack.alt.org`-inspired frontend for hosting a multiplayer DoomRL server. F
 - closed caption support (also usable without the server; see `ttysound/README.md`)
 - a web interface that lets people view the scoreboard, spectate, and even play the game from their browser
 
+
+
 ## Installing doomrl-server
 
 If you're running NixOS, there are overlays and a service configuration in `etc/`. See `etc/README.md` for details.
