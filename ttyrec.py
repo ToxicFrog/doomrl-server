@@ -409,6 +409,7 @@ class TTYPlayer(object):
         continue
       os.write(self.stdout, frame[1])
 
+  following = False
   def follow(self):
     self.following = True
     self.play(start_at=self.duration)
