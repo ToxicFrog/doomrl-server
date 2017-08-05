@@ -95,6 +95,8 @@ If want to temporarily bring the server down for maintenance, creating the file 
 
 The file `/srv/doomrl/debug`, if it exists, will put the server in debug mode. Mostly, this just means if something goes wrong, the user will get a full stack trace. You can also create the file `/srv/doomrl/players/<player name>/debug` to enable debug mode only for some players.
 
+The `rebuild` command (which forces an immediate rebuild of the web scoreboard) is also limited to users with debug privileges.
+
 ### DoomRL configuration files
 
 DoomRL configuration files are located in `/usr/src/doomrl-server/config/`. Of these, the files `controls.lua`, `colours.lua`, and `user.lua` are copied at player registration time and can be edited by the player afterwards; the other files are read-only. The defaults should be fine for most purposes, but you might want to edit them to, say, enable a custom mod server.

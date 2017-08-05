@@ -14,21 +14,24 @@ from collections import defaultdict
 # Global state
 _doom_path = None  # Path to DoomRL installation (e.g. /opt/doomrl)
 _data_path = None  # Path to doomrl-server installation (e.g /usr/share/doomrl-server)
-_home_path = None  # Path to doomrl-server state (e.g. /srv/doomrl-server)
+_user_path = None  # Path to doomrl-server state (e.g. /srv/doomrl-server)
 
 _user = None  # Name of currently logged in user, if any.
 
-def init(doom, data, home):
-  assert (doom and data and home), "DoomRL-server initialization error: root=%s, doomrl=%s" % (root, doomrl)
-  global _doom_path,_data_path,_home_path
+def init(doom, data, user):
+  assert (doom and data and user), "DoomRL-server initialization error: root=%s, doomrl=%s" % (root, doomrl)
+  global _doom_path,_data_path,_user_path
   _doom_path = doom
   _data_path = data
-  _home_path = home
+  _user_path = user
   syslog.syslog('DoomRL binary install path: %s' % _doom_path)
   syslog.syslog('DoomRL server data path: %s' % _data_path)
-  syslog.syslog('DoomRL player data path: %s' % _home_path)
-  os.makedirs(join(_home_path, 'www'), exist_ok=True)
-  os.makedirs(join(_home_path, 'players'), exist_ok=True)
+  syslog.syslog('DoomRL player data path: %s' % _user_path)
+  os.makedirs(join(_user_path, 'players'), exist_ok=True)
+  os.makedirs(join(_user_path, 'www'), exist_ok=True)
+  if not exists(join(_user_path, 'www/static')):
+    os.symlink(join(_data_path, 'www'), join(_user_path, 'www/static'))
+
 
 def debug():
   """Return true if the logged in user has debug privileges (or if the entire server
@@ -36,12 +39,12 @@ def debug():
   return exists(datapath('debug')) or (_user and exists(homepath('debug')))
 
 def datapath(*args):
-  """Return path to a doomrl-server data file. If the file exists in _home_path,
+  """Return path to a doomrl-server data file. If the file exists in _user_path,
   returns the path to that; otherwise returns the path to the file in _data_path.
   This allows the server administrator to override, e.g., the motd without needing
   to edit the doomrl-server install itself."""
-  if exists(join(_home_path, *args)):
-    return join(_home_path, *args)
+  if exists(join(_user_path, *args)):
+    return join(_user_path, *args)
   return join(_data_path, *args)
 
 def doompath(*args):
@@ -50,7 +53,7 @@ def doompath(*args):
 def homepath(*args, user=None):
   if user is None:
     user = _user
-  return join(_home_path, 'players', user, *args)
+  return join(_user_path, 'players', user, *args)
 
 # User manipulation
 def name_valid(name):
@@ -240,7 +243,9 @@ def show_scores(scores, time='time'):
   less.wait()
 
 # Website structure:
-# www/index.html: top N scores and top killers
+# static/: symlink to $data_dir/www
+# www/index.html: top N scores
+# www/deaths.html: top killers
 # www/players/index.html: list of players with K/D ratio for each, click for specific player
 # www/players/<name>/index.html: page listing all of that player's games
 # www/players/<name>/<index>.{mortem,ttyrec}: postmortem and ttyrec files
@@ -284,7 +289,7 @@ def build_website_for_user(www, user):
         else:
           fd.write('[   ]')
         if link_to(www, user, '%d.ttyrec' % game['n']):
-          fd.write('[<a href="../../replay.html#%s/%d">TTY</a>]' % (user, game['n']))
+          fd.write('[<a href="../../static/replay.html#%s/%d">TTY</a>]' % (user, game['n']))
         else:
           fd.write('[   ]')
         fd.write(scoreline(game, bold='<b>', bold_eol='</b>') + '\n')
@@ -292,7 +297,7 @@ def build_website_for_user(www, user):
   return user_games
 
 def build_website(www):
-  www = join(_root, www)
+  www = join(_user_path, www)
   all_games = []
   if not exists(join(www, 'players')):
     os.makedirs(join(www, 'players'))
@@ -329,7 +334,7 @@ def build_website(www):
       else:
         fd.write('[   ]')
       if exists(join(www, 'players', user, '%d.ttyrec' % n)):
-        fd.write('[<a href="replay.html#%s/%d">TTY</a>]' % (user, n))
+        fd.write('[<a href="static/replay.html#%s/%d">TTY</a>]' % (user, n))
       else:
         fd.write('[   ]')
       fd.write(scoreline(game, bold='<b>', bold_eol='</b>') + '\n')

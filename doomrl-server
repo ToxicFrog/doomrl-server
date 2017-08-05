@@ -96,7 +96,7 @@ def main(args):
   doomrl.init(
     doom=args.doom_path,
     data=args.data_path,
-    home=args.user_path)
+    user=args.user_path)
 
   # Ugly hack: in.telnetd doesn't pass through the environment, so we set a
   # PATH here that should work on most linuxes, including NixOS.
