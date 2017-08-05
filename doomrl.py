@@ -27,6 +27,8 @@ def init(doom, data, home):
   syslog.syslog('DoomRL binary install path: %s' % _doom_path)
   syslog.syslog('DoomRL server data path: %s' % _data_path)
   syslog.syslog('DoomRL player data path: %s' % _home_path)
+  os.makedirs(join(_home_path, 'www'), exist_ok=True)
+  os.makedirs(join(_home_path, 'players'), exist_ok=True)
 
 def debug():
   """Return true if the logged in user has debug privileges (or if the entire server
