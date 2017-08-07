@@ -144,6 +144,10 @@ matchers = {
   r"|let an (arachnotron) get him"
   r"|was melted by (former commando)'s plasma gun"
   r"|let the (Spider Mastermind) pwn him"
+  r"|faced a (nightmare arch-vile)"
+  r"|let an (nightmare arachnotron) get him"
+  r"|was melted by an (elite commando)'s gun"
+  r"|was pwned by (John Carmack)"
   r") .*":
   lambda *args: { 'killed': "killed by a " + [x for x in args if x][0] },
 
@@ -249,7 +253,6 @@ def show_scores(scores, time='time'):
 # www/players/index.html: list of players with K/D ratio for each, click for specific player
 # www/players/<name>/index.html: page listing all of that player's games
 # www/players/<name>/<index>.{mortem,ttyrec}: postmortem and ttyrec files
-# www/players/<name>/<name>.zip: archive of all postmortem and ttyrec files
 _HEADER = (
   '<html><head>'
   '<style>a:link { color: #0080FF; } a:visited { color: #8000FF };</style>'
