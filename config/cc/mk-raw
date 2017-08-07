@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+BEINGS=(
+  agony angel apostle arachno arch
+  baron bruiser
+  cacodemon captain commando cyberdemon
+  demon
+  ecaptain ecommando eformer esergeant
+  former
+  imp
+  jc
+  knight
+  lava_elemental lostsoul
+  mancubus mastermind
+  narachno narch ncacodemon ndemon nimp
+  pain
+  revenant
+  sergeant shambler
+)
+
+function mksound() {
+  mkdir -p "raw/$1"
+  echo -n "$1/$2" > "raw/$1/$2"
+}
+
+mksound door close
+mksound door open
+echo -n "explosion"  > raw/explosion
+echo -n "gunfire"    > raw/gunfire
+echo -n "teleporter" > raw/teleporter
+
+for being in "${BEINGS[@]}"; do
+  for sound in act die fire hit; do
+    mksound "$being" "$sound"
+  done
+done
