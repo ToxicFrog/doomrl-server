@@ -53,21 +53,13 @@ Sound = {
   };
 }
 
-local enemies = {
-  'former', 'sergeant', 'captain', 'commando',
-  'imp', 'demon', 'lostsoul', 'pain',
-  'cacodemon', 'arachno', 'knight', 'baron',
-  'mancubus', 'revenant', 'arch',
-  -- bosses
-  'bruiser', 'cyberdemon', 'angel', 'mastermind', 'jc',
-}
+dofile 'cc/beings.lua'
 
-for i=1,#enemies do
-  local name = enemies[i]
+for name,def in pairs(BEINGS) do
   local sounds = {}
   sounds.die  = 'cc/'..style..'/'..name..'/die'
   sounds.act  = 'cc/'..style..'/'..name..'/act'
-  sounds.hit = 'cc/'..style..'/'..name..'/hit'
+  sounds.hit  = 'cc/'..style..'/'..name..'/hit'
   sounds.fire = 'cc/'..style..'/'..name..'/fire'
   sounds.hoof = 'cc/TICK'
   Sound[name] = sounds

@@ -150,4 +150,6 @@ LockBreak        = true
 -- true by default.
 LockClose        = true
 
+-- At the end so that it can override previous sound settings if the user turned
+-- closed captions on.
 dofile "soundcc.lua"

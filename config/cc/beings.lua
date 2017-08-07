@@ -1,4 +1,4 @@
-return {
+BEINGS = {
   agony       = { face = 'O'; colour = 'MG'; }; -- boss
   angel       = { face = 'A'; colour = 'rd'; }; -- boss
   apostle     = { face = '@'; colour = 'yl'; }; -- boss
@@ -34,3 +34,4 @@ return {
   shambler    = { face = 'B'; colour = 'WH'; }; -- boss
 }
 
+return BEINGS
