@@ -1,49 +1,45 @@
-local C = {}
+C = {} -- global
 for i,colour in ipairs { 'bk', 'rd', 'gr', 'yl', 'bl', 'mg', 'cy', 'wh' } do
   C[colour] = function(x) return '\x1B[0;'..(i+29)..'m'..x end
   C[colour:upper()] = function(x) return '\x1B[1;'..(i+29)..'m'..x end
 end
 
-local symbols = {
-  former      = C.wh 'h';
-  sergeant    = C.BK 'h';
-  captain     = C.RD 'h';
-  commando    = C.BL 'h';
-  imp         = C.yl 'i';
-  demon       = C.MG 'c';
-  lostsoul    = C.YL 's';
-  pain        = C.yl 'O';
-  cacodemon   = C.RD 'O';
-  arachno     = C.YL 'A';
-  knight      = C.yl 'B';
-  baron       = C.MG 'B';
-  mancubus    = C.yl 'M';
-  revenant    = C.WH 'R';
-  arch        = C.YL 'V';
-  bruiser     = C.RD 'B';
-  cyberdemon  = C.yl 'C';
-  angel       = C.rd 'A';
-  mastermind  = C.WH 'M';
-  jc          = C.BL '@';
-}
+local beings = require 'beings'
 
 local hit = C.RD '*'
-local die = C.RD '%'
 local fire = C.YL '!'
+local die = C.RD '%'
 
 local function write(text, file)
   assert(io.open(file, 'w')):write(text)
 end
 
-for enemy,symbol in pairs(symbols) do
-  write(symbol, 'cc/symbolic/'..enemy..'/act')
-  write(hit..symbol..hit, 'cc/symbolic/'..enemy..'/hit')
-  write(fire..symbol..fire, 'cc/symbolic/'..enemy..'/fire')
-  write(die..symbol..die, 'cc/symbolic/'..enemy..'/die')
+local function write_effects(type, name, face, hit, fire, die)
+  write(face, type..'/'..name..'/act')
+  write(hit..face..hit, type..'/'..name..'/hit')
+  write(fire..face..fire, type..'/'..name..'/fire')
+  write(die..face..die, type..'/'..name..'/die')
 end
 
-write(C.yl '+', 'cc/symbolic/door/close')
-write(C.yl '/', 'cc/symbolic/door/open')
-write(C.CY '*', 'cc/symbolic/teleporter')
-write(C.YL '*', 'cc/symbolic/explosion')
-write(C.WH '*', 'cc/symbolic/gunfire')
+-- Symbolic effects with colours, for use in the tty.
+for name,def in pairs(beings) do
+  local face = C[def.colour](def.face)
+  write_effects('symbolic', name, face, hit, fire, die)
+end
+
+write(C.yl '+', 'symbolic/door/close')
+write(C.yl '/', 'symbolic/door/open')
+write(C.CY '*', 'symbolic/teleporter')
+write(C.YL '*', 'symbolic/explosion')
+write(C.WH '*', 'symbolic/gunfire')
+
+-- Symbolic effects without colours, for use in SDL.
+for name,def in pairs(beings) do
+  write_effects('plain-symbolic', name, def.face, '*', '!', '%')
+end
+
+write('+', 'plain-symbolic/door/close')
+write('/', 'plain-symbolic/door/open')
+write('*', 'plain-symbolic/teleporter')
+write('*', 'plain-symbolic/explosion')
+write('*', 'plain-symbolic/gunfire')
