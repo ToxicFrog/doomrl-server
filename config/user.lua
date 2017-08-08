@@ -31,15 +31,23 @@ BlindMode        = false
 -- Setting to true will turn on enhancements for colorblind people.
 ColorBlindMode   = false
 
--- Setting this will enable EXPERIMENTAL closed caption support.
+-- Setting this will enable closed caption support.
 -- If set to "symbolic", it will show you the monster symbols, accompanied with
 -- !/*/% for shoot/hurt/die.
--- If set to "descriptive", it will show you descriptions of the sounds.
+-- If set to "descriptive", it will show you descriptions of the sounds (WIP).
 -- If set to "raw", it will show you the raw event names.
 -- If set to "default", it will use the default setting for this server, usually
 -- "symbolic".
 -- Any other setting will disable closed captions.
 DeafMode         = "default"
+
+-- Control how Nightmare enemies ("nightmare ___" and "elite ___") are handled
+-- by the closed captions.
+-- "full" gives them their own closed caption data.
+-- "limited" re-uses the CC data for non-nightmare versions, so you can tell
+-- that they're there but can't distinguish them from normal enemies.
+-- "none" disables CC for nightmare enemies entirely, making them silent.
+NightmareClosedCaptionsMode = "full"
 
 -- Setting to true will make old messages disappear from the screen
 -- (useful in BlindMode)

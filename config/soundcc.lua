@@ -56,11 +56,5 @@ Sound = {
 dofile 'cc/beings.lua'
 
 for name,def in pairs(BEINGS) do
-  local sounds = {}
-  sounds.die  = 'cc/'..style..'/'..name..'/die'
-  sounds.act  = 'cc/'..style..'/'..name..'/act'
-  sounds.hit  = 'cc/'..style..'/'..name..'/hit'
-  sounds.fire = 'cc/'..style..'/'..name..'/fire'
-  sounds.hoof = 'cc/TICK'
-  Sound[name] = sounds
+  Sound[name] = createSoundMapForBeing(style, name, def)
 end

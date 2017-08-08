@@ -11,10 +11,10 @@ BEINGS = {
   commando    = { face = 'h'; colour = 'BL'; };
   cyberdemon  = { face = 'C'; colour = 'yl'; }; -- boss
   demon       = { face = 'c'; colour = 'MG'; };
-  ecaptain    = { face = 'h'; colour = 'MG'; }; -- nightmare
-  ecommando   = { face = 'h'; colour = 'CY'; }; -- nightmare
-  eformer     = { face = 'h'; colour = 'yl'; }; -- nightmare
-  esergeant   = { face = 'h'; colour = 'YL'; }; -- nightmare
+  ecaptain    = { face = 'h'; colour = 'MG'; nightmare_of = 'captain' };
+  ecommando   = { face = 'h'; colour = 'CY'; nightmare_of = 'commando'; };
+  eformer     = { face = 'h'; colour = 'yl'; nightmare_of = 'former'; };
+  esergeant   = { face = 'h'; colour = 'YL'; nightmare_of = 'sergeant'; };
   former      = { face = 'h'; colour = 'wh'; };
   imp         = { face = 'i'; colour = 'yl'; };
   jc          = { face = '@'; colour = 'BL'; }; -- boss
@@ -23,15 +23,31 @@ BEINGS = {
   lostsoul    = { face = 's'; colour = 'YL'; };
   mancubus    = { face = 'M'; colour = 'yl'; };
   mastermind  = { face = 'M'; colour = 'WH'; }; -- boss
-  narachno    = { face = 'A'; colour = 'BL'; }; -- nightmare
-  narch       = { face = 'V'; colour = 'BL'; }; -- nightmare
-  ncacodemon  = { face = 'O'; colour = 'BL'; }; -- nightmare
-  ndemon      = { face = 'c'; colour = 'BL'; }; -- nightmare
-  nimp        = { face = 'i'; colour = 'BL'; }; -- nightmare
+  narachno    = { face = 'A'; colour = 'BL'; nightmare_of = 'arachno'; };
+  narch       = { face = 'V'; colour = 'BL'; nightmare_of = 'arch'; };
+  ncacodemon  = { face = 'O'; colour = 'BL'; nightmare_of = 'cacodemon'; };
+  ndemon      = { face = 'c'; colour = 'BL'; nightmare_of = 'demon'; };
+  nimp        = { face = 'i'; colour = 'BL'; nightmare_of = 'imp'; };
   pain        = { face = 'O'; colour = 'yl'; };
   revenant    = { face = 'R'; colour = 'WH'; };
   sergeant    = { face = 'h'; colour = 'BK'; };
   shambler    = { face = 'B'; colour = 'WH'; }; -- boss
 }
 
-return BEINGS
+function createSoundMapForBeing(style, name, def)
+  if def.nightmare_of then
+    if NightmareClosedCaptionsMode == "none" then
+      return nil
+    elseif NightmareClosedCaptionsMode == "limited" then
+      name = def.nightmare_of
+    end
+  end
+
+  return {
+    die  = 'cc/'..style..'/'..name..'/die';
+    act  = 'cc/'..style..'/'..name..'/act';
+    hit  = 'cc/'..style..'/'..name..'/hit';
+    fire = 'cc/'..style..'/'..name..'/fire';
+    hoof = 'cc/TICK';
+  }
+end
