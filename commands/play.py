@@ -28,6 +28,7 @@ class PlayCommand(Command):
   """
 
   nargs = 1
+  child = None
 
   def setup(self, name):
     # If the player has a game in progress, restore their ttyrec and save.
@@ -60,7 +61,7 @@ class PlayCommand(Command):
       env = os.environ
 
     (rpipe,wpipe) = os.pipe()
-    child = subprocess.Popen(cmd, stdout=wpipe, env=env, cwd=doomrl.homepath())
+    self.child = subprocess.Popen(cmd, stdout=wpipe, env=env, cwd=doomrl.homepath())
     os.close(wpipe)
 
     # DoomRL needs the terminal in raw mode, but since it's running inside ttyrec
@@ -71,7 +72,8 @@ class PlayCommand(Command):
       # This will return when DoomRL closes the fd.
       # It will also automatically reset the TTY on leaving the 'with' block.
       rec.ttyrec(in_fd=rpipe)
-    child.wait()
+    self.child.wait()
+    self.child = None
 
   def run(self, name):
     if not doomrl.user():
@@ -111,6 +113,10 @@ class PlayCommand(Command):
       self.shutdown(name, scores, mortem)
 
   def shutdown(self, name, scores_before, mortem_before):
+    if self.child:
+      self.child.kill()
+      self.child = None
+
     # If the game is still in progress, save the ttyrec file.
     if exists(doomrl.homepath('save')):
       os.rename(self.recfile, doomrl.homepath('saves', name + '.ttyrec'))
