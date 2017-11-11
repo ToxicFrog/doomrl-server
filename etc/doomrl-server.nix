@@ -9,7 +9,7 @@ in {
       owner = "toxicfrog";
       repo = "doomrl-server";
       rev = "master";
-      sha256 = "08fqk2v02rd7jb8fpxk4ab7c7zzrpvdnc7iklmx71pa8bd3x1kqz";
+      sha256 = "X8fqk2v02rd7jb8fpxk4ab7c7zzrpvdnc7iklmx71pa8bd3x1kqz";
     };
 
     nativeBuildInputs = with self; [gnumake];

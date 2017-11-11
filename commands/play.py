@@ -104,6 +104,17 @@ class PlayCommand(Command):
     (scores,mortem) = self.setup(name)
     try:
       self.run_doomrl()
+
+    except OSError as e:
+      # This almost certainly means that the user disconnected in mid-game.
+      # Don't try to output any error messages, they'll just throw again because
+      # our tty is gone.
+      if self.child and (self.child.poll() is None):
+        self.child.kill()
+        self.child = None
+      # Call _exit rather than using sys.exit so we don't try to run finalizers.
+      os._exit(1)
+
     except Exception as e:
       import traceback
       log('Error running DoomRL: ' + traceback.format_exc())
@@ -113,7 +124,8 @@ class PlayCommand(Command):
       self.shutdown(name, scores, mortem)
 
   def shutdown(self, name, scores_before, mortem_before):
-    if self.child:
+    # If DoomRL is still running, kill it.
+    if self.child and (self.child.poll() is None):
       self.child.kill()
       self.child = None
 
@@ -132,7 +144,10 @@ class PlayCommand(Command):
 
     if mortem == mortem_before:
       # No new postmortem created and no save file means no game played.
-      os.remove(self.recfile)
+      try:
+        os.remove(self.recfile)
+      except FileNotFoundError:
+        pass
       return
 
     scores_after = doomrl.raw_scores()
