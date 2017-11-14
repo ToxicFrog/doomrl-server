@@ -8,8 +8,8 @@ in {
     src = self.fetchFromGitHub {
       owner = "toxicfrog";
       repo = "doomrl-server";
-      rev = "master";
-      sha256 = "X8fqk2v02rd7jb8fpxk4ab7c7zzrpvdnc7iklmx71pa8bd3x1kqz";
+      rev = "368c685f35850e86261c891b2e73a680e8077eb4";
+      sha256 = "1cfp1l8266dbxcvazqhgfxravg0kzdff3c75qjdisakxybjf7jnq";
     };
 
     nativeBuildInputs = with self; [gnumake];
