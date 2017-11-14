@@ -79,7 +79,7 @@ def readconfig(args):
       line.strip().split(None, 1)
       for line
       in open(args.conf_path, 'r').read().split('\n')
-      if line
+      if line and not line.startswith('#')
     ]
   }
   args.doom_path = args.doom_path or conf['doom_path']
