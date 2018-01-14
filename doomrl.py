@@ -119,7 +119,7 @@ angels = {
   'Darkness': 'AoD',
   'Max Carnage': 'AoMC',
   'Masochism': 'AoMs',
-  '100': 'A100',
+  '666': 'A666',
   'Pacifism': 'AoPc',
   'Humanity': 'AoHu',
   'Overconfidence': 'AoOC',
@@ -152,7 +152,7 @@ matchers = {
   lambda *args: { 'killed': "killed by a " + [x for x in args if x][0] },
 
   r" committed a stupid suicide.*": lambda: { 'killed': 'committed suicide' },
-  r" ((?:defeated|nuked) the Mastermind|nuked himself|completed 100 levels) .*":
+  r" ((?:defeated|nuked) the Mastermind|nuked himself|completed (?:100|666) levels) .*":
   lambda win: { 'killed': win },
 
   r' He survived \d+ turns and scored (\d+) points\.':
