@@ -75,21 +75,24 @@ class PlayCommand(Command):
     self.child.wait()
     self.child = None
 
+  def list_running_games(self):
+    # List games in progress
+    saves = os.listdir(doomrl.homepath('saves'))
+    if not saves:
+      print('You have no games in progress.')
+    else:
+      print('Games in progress:')
+      for save in [s for s in saves if not s.endswith('.ttyrec')]:
+        print('\t', save)
+      print('Type "play <name>" to resume one.')
+    return
+
   def run(self, name):
     if not doomrl.user():
       return 'You must log in first.'
 
     if not name:
-      # List games in progress
-      saves = os.listdir(doomrl.homepath('saves'))
-      if not saves:
-        print('You have no games in progress.')
-      else:
-        print('Games in progress:')
-        for save in [s for s in saves if not s.endswith('.ttyrec')]:
-          print('\t', save)
-        print('Type "play <name>" to resume one.')
-      return
+      return self.list_running_games()
 
     # We can be a bit looser about names here, but for simplicity's sake we
     # just reuse the name validation code we use for player names.
