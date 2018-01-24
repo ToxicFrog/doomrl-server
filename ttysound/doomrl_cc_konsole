@@ -1,11 +1,14 @@
 #!/bin/sh
 set -eu
 
-export LD_LIBRARY_PATH=ttysound/
+cd "$(dirname "$0")"
+export LD_LIBRARY_PATH="$PWD"
 export SDL_AUDIODRIVER=disk
 export SDL_DISKAUDIOFILE=/dev/null
 
 # We attempt to force console size using -p, but various program/WM settings can
 # override this. Up to the user to resize if this happens.
 
-exec konsole --workdir="`pwd`" --nofork --separate -p 'TerminalColumns=80;TerminalRows=26' -e ./doomrl -console
+exec konsole --workdir="$PWD" --nofork --separate \
+  -p 'TerminalColumns=80;TerminalRows=26' \
+  -e ./doomrl -console

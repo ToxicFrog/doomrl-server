@@ -181,7 +181,7 @@ Sound support in the web client: stream music and sound effects to the browser, 
 
 ## License
 
-Copyright © 2014 Ben "ToxicFrog" Kelly
+Copyright © 2019 ToxicFrog
 Distributed under the MIT License; see the file COPYING for details.
 
 ASCII DOOM logo copyright © 1994 F.P. de Vries.
