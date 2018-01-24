@@ -245,4 +245,4 @@ Messages = {
 ClosedCaptions = true
 ClosedCaptionsMode = "sdl"
 
-dofile "soundcc.lua"
+dofile "cc/config.lua"

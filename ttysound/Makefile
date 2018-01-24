@@ -3,15 +3,30 @@
 CFLAGS=-g -Wall -Werror -std=gnu99 -shared -fPIC
 MINGW_LIBS=-L/usr/i686-w64-mingw32/sys-root/mingw/lib/
 
-all: linux
-linux: libSDL_mixer-1.2.so.0
-windows: SDL_mixer.dll
+SCRIPTS=$(wildcard doomrl_cc_*)
+DATA=cc README.md config.lua
 
-SDL_mixer.dll: libttysound.c stubs.c
+SO_NAME=libSDL_mixer-1.2.so.0
+DLL_NAME=SDL_mixer.dll
+ZIP_NAME=doomrl-closedcaptions-$(shell git describe --tags).zip
+
+all: linux
+linux: $(SO_NAME)
+windows: $(DLL_NAME)
+zip: $(ZIP_NAME)
+
+$(ZIP_NAME): libwinpthread-1.dll $(DLL_NAME) $(SO_NAME) $(SCRIPTS) $(DATA)
+	zip -r $@ $+
+
+$(DLL_NAME): libttysound.c stubs.c
 	$(CC) $(MINGW_LIBS) $(CFLAGS) -o $@ $+ -lSDL
 
-libSDL_mixer-1.2.so.0: libttysound.c stubs.c
+$(SO_NAME): libttysound.c stubs.c
 	$(CC) $(CFLAGS) -o $@ $+
 
+# FIXME: probably doesn't work on not-SUSE
+libwinpthread-1.dll: /usr/i686-w64-mingw32/sys-root/mingw/bin/libwinpthread-1.dll
+	cp $< $@
+
 clean:
-	rm -f libSDL_mixer-1.2.so.0 SDL_mixer.dll
+	rm -f *.zip $(DLL_NAME) $(SO_NAME)
