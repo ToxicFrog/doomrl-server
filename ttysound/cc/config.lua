@@ -1,23 +1,29 @@
+if not ClosedCaptions then return end
+
+-- Set default values
+ClosedCaptionStyle = ClosedCaptionStyle or 'auto'
+NightmareClosedCaptionStyle = NightmareClosedCaptionStyle or 'full'
+
+-- Errors don't get propagated by DoomRL dofile(), so we explicitly print them
+-- here.
+local function CHECK(val, msg)
+  if val then return end
+  print(msg)
+  error(msg)
+end
+
 -- Supported styles. Edit this list if you're adding a new style, or an alias
 -- for an existing one.
 local styles = {
-  default = 'symbolic';
-  tty = 'symbolic';
-  symbolic = 'symbolic';
-
-  ['plain-symbolic'] = 'plain-symbolic';
-  titlebar = 'plain-symbolic';
-  sdl = 'plain-symbolic';
-
+  auto = Graphics == 'CONSOLE' and 'fancy' or 'plain';
+  default = 'fancy';
+  fancy = 'fancy';
+  plain = 'plain';
   raw = 'raw';
-  descriptive = 'descriptive';
 }
 
-local style = styles[DeafMode]
-
--- Unrecognized DeafMode will result in it being set to nil. In that case
--- (or if explicitly set to false), early return without changing any settings.
-if not style then return end
+local style = styles[ClosedCaptionStyle]
+CHECK(style, "Unknown ClosedCaptionStyle: " .. tostring(ClosedCaptionStyle))
 
 -- Override sound engine settings.
 SoundEngine = "SDL"
@@ -53,8 +59,29 @@ Sound = {
   };
 }
 
-dofile 'cc/beings.lua'
+-- Load beings table and generate sound map for beings.
+function createSoundMapForBeing(style, name, def)
+  if def.nightmare_of then
+    if NightmareClosedCaptionStyle == "none" then
+      return nil
+    elseif NightmareClosedCaptionStyle == "limited" then
+      name = def.nightmare_of
+    elseif NightmareClosedCaptionStyle == "full" then
+      -- pass
+    else
+      CHECK(false, "Unknown NightmareClosedCaptionStyle: " .. tostring(NightmareClosedCaptionStyle))
+    end
+  end
 
-for name,def in pairs(BEINGS) do
+  return {
+    die  = 'cc/'..style..'/'..name..'/die';
+    act  = 'cc/'..style..'/'..name..'/act';
+    hit  = 'cc/'..style..'/'..name..'/hit';
+    fire = 'cc/'..style..'/'..name..'/fire';
+    hoof = 'cc/TICK';
+  }
+end
+
+for name,def in pairs(loadfile('cc/beings.lua')()) do
   Sound[name] = createSoundMapForBeing(style, name, def)
 end

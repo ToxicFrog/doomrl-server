@@ -1,4 +1,4 @@
-BEINGS = {
+return {
   agony       = { face = 'O'; colour = 'MG'; }; -- boss
   angel       = { face = 'A'; colour = 'rd'; }; -- boss
   apostle     = { face = '@'; colour = 'yl'; }; -- boss
@@ -33,21 +33,3 @@ BEINGS = {
   sergeant    = { face = 'h'; colour = 'BK'; };
   shambler    = { face = 'B'; colour = 'WH'; }; -- boss
 }
-
-function createSoundMapForBeing(style, name, def)
-  if def.nightmare_of then
-    if NightmareClosedCaptionsMode == "none" then
-      return nil
-    elseif NightmareClosedCaptionsMode == "limited" then
-      name = def.nightmare_of
-    end
-  end
-
-  return {
-    die  = 'cc/'..style..'/'..name..'/die';
-    act  = 'cc/'..style..'/'..name..'/act';
-    hit  = 'cc/'..style..'/'..name..'/hit';
-    fire = 'cc/'..style..'/'..name..'/fire';
-    hoof = 'cc/TICK';
-  }
-end

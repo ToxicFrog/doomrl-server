@@ -16,22 +16,28 @@ There is currently no support for directionality and distance of sound, but this
 ## Installation.
 
 - Install DoomRL wherever you please.
+
 - Copy the following files and directories from the doomrl-server directory into your DoomRL install:
   - `ttysound/`
   - `config/cc/`
   - `config/soundcc.lua`
 
   You should end up with `soundcc.lua` and `cc/` in the same directory as `config.lua`, not in a `config/` subdirectory.
+
 - Build the library:
   - `cd ttysound`
   - `make`
 
   If this works you should have a `ttysound/libttysound.so` file, and a `ttysound/libSDL_mixer-1.2.so.0` symlink pointing to it. The latter is what DoomRL will load.
 - Edit `config.lua` and add the following lines *at the bottom*:
-  - `DeafMode = "symbolic"`
-  - `dofile "soundcc.lua"`
+  ```
+  ClosedCaptions = true
+  ClosedCaptionStyle = 'fancy'
+  NightmareClosedCaptionStyle = 'full'
+  dofile 'soundcc.lua'
+  ```
+  It is important that they be in that order. (See `Settings` below for other possible values of `ClosedCaptionStyle` and `NightmareClosedCaptionStyle`.)
 
-  It is important that they be in that order. (See `Settings` below for other possible values of `DeafMode`.)
 - Finally, launch DoomRL using one of the `ttysound/doomrl_cc` scripts rather than the ones that come with DoomRL. If you don't use those scripts, the environment variables you need to set for closed captions to work properly are:
 
   ```
@@ -46,23 +52,40 @@ There is currently no support for directionality and distance of sound, but this
 
 ## Settings
 
-The only configuration possible is whether to use closed captions or not at all, and what style to display them in.
+The closed captions library has three configuration settings. *All three of them* should be set before loading `cc/config.lua`, which is the script that actually loads the closed caption data. If you don't load this script, or if you load it before setting the configuration, closed captions will not work.
 
-To turn them off completely, simply set `DeafMode = false` in the configuration file.
+If any of these settings are set to an invalid value, loading will abort with an error message in the terminal.
 
-To change the style, change the value of the `DeafMode` setting. Currently, the following styles are supported:
+### ClosedCaptions
 
-- `"symbolic"`, the default, displays 1-3 character symbols based on the existing monster symbols and visual effects.
-- `"plain-symbolic"` is identical to `"symbolic"`, but without colour codes; it's suitable for use in the title bar of the graphical version of DoomRL.
-- `"default"` and `"tty"` are aliases for `"symbolic"`.
-- `"titlebar"` and `"sdl"` are aliases for `"plain-symbolic"`.
-- `"raw"` displays raw event names.
-- `"descriptive"` will someday display lengthier, Nethack-style sound descriptions (e.g. "You hear: a clanking noise, a distant scream, an explosion"), but it's still a work in progress and at the moment behaves identically to `"raw"`.
+Controls whether closed captions are enabled at all.
 
-Any unrecognized setting will result in closed captions being disabled.
+- `ClosedCaptions = true` turns on closed captions.
+- `ClosedCaptions = false` turns them off, even if `cc/config.lua` is loaded.
+
+### ClosedCaptionStyle
+
+Controls how they are displayed.
+
+- `ClosedCaptionStyle = 'fancy'` uses colourful symbols that match the in-game enemy symbols, and is suitable for use in the terminal.
+- `ClosedCaptionStyle = 'plain'` uses monochrome symbols, and is suitable for use in graphical mode (or on terminals that don't support colour).
+- `ClosedCaptionStyle = 'raw'` displays raw event IDs and is primarily useful for debugging.
+- `ClosedCaptionStyle = 'auto'` is equivalent to `'fancy'` if `Graphics = 'CONSOLE'` in your main configuration file, and equivalent to `'plain'` otherwise. Note that this is not 100% reliable -- if you are overriding the `Graphics` setting with the `-console` or `-graphics` command line options, *it won't know that*.
+
+`'auto'` is the default.
+
+### NightmareClosedCaptionStyle
+
+Controls how sounds for Nightmare creature variants are displayed.
+
+- `NightmareClosedCaptionStyle = 'full'` gives each nightmare creature its own set of captions.
+- `NightmareClosedCaptionStyle = 'limited'` gives each nightmare creature the captions from the equivalent non-nightmare creature, so you can still "hear" them, but can't distinguish them from ordinary enemies.
+- `NightmareClosedCaptionStyle = 'none'` makes nightmare creatures completely silent.
+
+`'full'` is the default.
 
 ## Adding custom styles
 
-The text displayed for each sound is stored in the `config/cc/` directory (`cc/` once installed). Each sound is in its own file, in `config/cc/<CC style>/<creature type>/<event name>`. The contents of this file will be displayed without modification when the sound is played, including any formatting or colour codes.
+The text displayed for each sound is stored in the `cc/` directory. Each sound is in its own file, in `cc/<CC style>/<creature type>/<event name>`. The contents of this file will be displayed without modification when the sound is played, including any formatting or colour codes.
 
-Adding a new CC style is just a matter of adding a new directory under `cc/` containing the appropriate files. It is recommended that you start by copying an existing style (`cc/raw/` is a good choice) to make sure you don't miss any files. Make sure you also edit the start of `soundcc.lua`; the `styles` table at the start of the file determines which style names are recognized as valid.
+Adding a new CC style is just a matter of adding a new directory under `cc/` containing the appropriate files. It is recommended that you start by copying an existing style (`cc/raw/` is a good choice) to make sure you don't miss any files. Make sure you also edit the start of `cc/config.lua`; the `styles` table at the start of the file determines which style names are recognized as valid.
