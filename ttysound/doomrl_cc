@@ -1,7 +1,8 @@
 #!/bin/sh
 set -eu
 
-export LD_LIBRARY_PATH=ttysound/
+cd "$(dirname "$0")"
+export LD_LIBRARY_PATH="$PWD"
 export SDL_AUDIODRIVER=disk
 export SDL_DISKAUDIOFILE=/dev/null
 

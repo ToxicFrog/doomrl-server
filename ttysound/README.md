@@ -13,42 +13,45 @@ There is currently no support for directionality and distance of sound, but this
 - `make`
 - libSDL (both the library and header files)
 
-## Installation.
+## Installation (from binary)
 
 - Install DoomRL wherever you please.
-
-- Copy the following files and directories from the doomrl-server directory into your DoomRL install:
-  - `ttysound/`
-  - `config/cc/`
-  - `config/soundcc.lua`
-
-  You should end up with `soundcc.lua` and `cc/` in the same directory as `config.lua`, not in a `config/` subdirectory.
-
-- Build the library:
-  - `cd ttysound`
-  - `make`
-
-  If this works you should have a `ttysound/libttysound.so` file, and a `ttysound/libSDL_mixer-1.2.so.0` symlink pointing to it. The latter is what DoomRL will load.
-- Edit `config.lua` and add the following lines *at the bottom*:
+- Download the latest ttysound release and unzip it to your DoomRL directory
+  - *If you don't mind resetting your configuration*: overwrite `config.lua` when prompted
+  - *If you want to keep your configuration*: do not overwrite `config.lua`; instead, add the following lines at the end:
   ```
   ClosedCaptions = true
   ClosedCaptionStyle = 'fancy'
   NightmareClosedCaptionStyle = 'full'
-  dofile 'soundcc.lua'
+  dofile 'cc/config.lua'
+  ```
+- Edit to taste; see the "Settings" section of this README for other configuration options.
+
+## Installation (from source)
+
+- Clone the repo and build the library:
+  - `git clone https://github.com/ToxicFrog/doomrl-server.git`
+  - `cd doomrl-server/ttysound`
+  - `make`
+  If this works you should have a `ttysound/libSDL_mixer-1.2.so.0` file.
+- Copy the requisite files into your DoomRL directory:
+  - `cp -a cc doomrl_cc* libSDL_mixer-1.2.so.0 /path/to/doomrl/installation`
+- Edit `config.lua` and add the following lines at the end:
+  ```
+  ClosedCaptions = true
+  ClosedCaptionStyle = 'fancy'
+  NightmareClosedCaptionStyle = 'full'
+  dofile 'cc/config.lua'
   ```
   It is important that they be in that order. (See `Settings` below for other possible values of `ClosedCaptionStyle` and `NightmareClosedCaptionStyle`.)
 
-- Finally, launch DoomRL using one of the `ttysound/doomrl_cc` scripts rather than the ones that come with DoomRL. If you don't use those scripts, the environment variables you need to set for closed captions to work properly are:
+## Running DoomRL with closed captions
 
-  ```
-  LD_LIBRARY_PATH=ttysound/
-  SDL_AUDIODRIVER=disk
-  SDL_DISKAUDIOFILE=/dev/null
-  ```
+The closed captions library comes with a bunch of launcher scripts, all named `doomrl_cc_<whatever>` (plus a plain `doomrl_cc` that just runs DoomRL in the current terminal). Use one of those instead of whatever launcher script you would normally use.
 
-  *Warning:* Unlike plain DoomRL, you require 80 columns and *26 rows* in the terminal for closed captions to display properly. If you aren't using one of the `doomrl_cc` scripts, make sure you adjust whatever you are using to take that into account.
+On windows, you can also just run `doomrl.exe` as normal once closed captions are installed.
 
-  The `doomrl_cc_<terminal>` scripts will launch DoomRL in tty mode in the given terminal. The plain `doomrl_cc` script will launch it in whatever mode is the default (graphical or tty) in the current terminal; you can also override this with the `-console` and `-graphics` command line options, same as running DoomRL directly. The closed caption library will automatically detect whether you're running it in graphical or tty mode and adapt accordingly.
+*Warning:* Unlike plain DoomRL, you require 80 columns and *26 rows* in the terminal for closed captions to display properly. If you aren't using one of the `doomrl_cc` scripts, make sure you adjust whatever you are using to take that into account.
 
 ## Settings
 
