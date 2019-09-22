@@ -119,6 +119,7 @@ angels = {
   'Darkness': 'AoD',
   'Max Carnage': 'AoMC',
   'Masochism': 'AoMs',
+  '100': 'A100',
   '666': 'A666',
   'Pacifism': 'AoPc',
   'Humanity': 'AoHu',
