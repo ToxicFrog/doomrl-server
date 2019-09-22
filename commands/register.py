@@ -21,18 +21,19 @@ class RegisterCommand(Command):
   nargs = 2
 
   def install(self, password):
-    """Install a personal copy of DoomRL to the given path."""
+    """Install a personal copy of DoomRL to the given path.
 
-    # Symlink in the DoomRL binary and WADs.
-    for file in ['core.wad', 'doomrl', 'doomrl.wad']:
-      os.symlink(doomrl.doompath(file), doomrl.homepath(file))
+    Note that the installed copy is not complete; it is missing server
+    configuration files and the symlink to the doomrl binary itself. The reason
+    for this is that the location of these files may change across runs (e.g.
+    if DoomRL is reinstalled to a different location, or if you're running on
+    NixOS and doomrl-server is updated), so they are symlinked anew each time
+    the 'play' command is used. Look in play.py for that part.
+    """
 
-    # Copy in the user-editable config files, then symlink in all the rest.
+    # Copy in the user-editable config files.
     for file in ['colours.lua', 'controls.lua', 'user.lua']:
       shutil.copy(doomrl.datapath('config', file), doomrl.homepath(file))
-    for file in os.listdir(doomrl.datapath('config')):
-      if not exists(doomrl.homepath(file)):
-        os.symlink(doomrl.datapath('config', file), doomrl.homepath(file))
 
     # Create directories for save files, postmortems, etc.
     for dir in ['backup', 'mortem', 'screenshot', 'saves', 'archive']:
