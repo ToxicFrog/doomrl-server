@@ -4,6 +4,7 @@ import shutil
 
 from commands import Command, run_command
 from os.path import join, exists
+from stat import S_IRUSR,S_IWUSR
 from syslog import syslog as log
 
 class RegisterCommand(Command):
@@ -34,6 +35,7 @@ class RegisterCommand(Command):
     # Copy in the user-editable config files.
     for file in ['colours.lua', 'controls.lua', 'user.lua']:
       shutil.copy(doomrl.datapath('config', file), doomrl.homepath(file))
+      os.chmod(doomrl.homepath(file), S_IWUSR + S_IRUSR)
 
     # Create directories for save files, postmortems, etc.
     for dir in ['backup', 'mortem', 'screenshot', 'saves', 'archive']:
