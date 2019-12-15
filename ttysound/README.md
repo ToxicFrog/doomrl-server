@@ -32,8 +32,9 @@ There is currently no support for directionality and distance of sound, but this
 - Clone the repo and build the library:
   - `git clone https://github.com/ToxicFrog/doomrl-server.git`
   - `cd doomrl-server/ttysound`
-  - `make`
-  If this works you should have a `ttysound/libSDL_mixer-1.2.so.0` file.
+  - `make DRL_SOUND_CONFIG=path/to/doomRL/soundhq.lua`
+  If this works you should have a `ttysound/libSDL_mixer-1.2.so.0` file, along
+  with a large pile of closed-caption data files in `cc/`.
 - Copy the requisite files into your DoomRL directory:
   - `cp -a cc doomrl_cc* libSDL_mixer-1.2.so.0 /path/to/doomrl/installation`
 - Edit `config.lua` and add the following lines at the end:
