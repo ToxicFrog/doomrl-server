@@ -245,9 +245,9 @@ module.exports = CompositionHelper;
 *
 * Reference: http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
 * @param {KeyboardEvent} ev The keyboard event to be translated to key escape sequence.
-* @param {boolean} applicationCursor 
+* @param {boolean} applicationCursor
 * @param {int} rows terminal rows
-* @param {boolean} isMac 
+* @param {boolean} isMac
 */
 
 module.exports = function (ev, applicationCursor, rows, isMac) {
