@@ -13,6 +13,10 @@ dofile "user.lua"
 -- Master settings that are meant to override the user-specified ones.
 ----------------------------------------------------------------------
 
+-- Music configuration, if the player has music enabled both in their config
+-- and in the closed caption settings.
+dofile "music.lua"
+
 -- QuickKey and numeric movement support, if the user asked for it in controls.lua
 dofile "quickkeys.lua"
 
@@ -26,14 +30,16 @@ Graphics = "CONSOLE"
 -- Possible values are FMOD, SDL, NONE, DEFAULT
 SoundEngine = "NONE"
 
--- Setting to false will turn off music during gameplay
-GameMusic        = false
+-- User is allowed to set these. Settings will be picked up by closed caption
+-- configuration if closed captions are enabled.
+-- -- Setting to false will turn off music during gameplay
+-- GameMusic        = false
 
--- Setting to false will turn off sounds during gameplay
-GameSound        = false
+-- -- Setting to false will turn off sounds during gameplay
+-- GameSound        = false
 
--- Setting to false will turn off Menu change/select sound
-MenuSound        = false
+-- -- Setting to false will turn off Menu change/select sound
+-- MenuSound        = false
 
 -- If set to true, pickup sound will be used for quickkeys and weapon
 -- swapping.

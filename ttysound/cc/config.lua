@@ -22,8 +22,8 @@ local style = styles[ClosedCaptionStyle] or styles.default
 
 -- Override sound engine settings.
 SoundEngine = "SDL"
-MenuSound = true
-GameSound = true
-GameMusic = false
+if MenuSound == nil then MenuSound = true end
+if GameSound == nil then GameSound = true end
+if GameMusic == nil then GameMusic = true end
 
 dofile('cc/'..style..'/init.lua')

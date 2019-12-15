@@ -2494,8 +2494,17 @@ var Terminal = function (_EventEmitter) {
                     audio.play();
                   } else if (cmd == "2") {
                     console.log("PLAY MUSIC", arg);
-                    // Not yet implemented
+                    let music = document.getElementById("music");
+                    if (arg) {
+                      music.src = "/static/music/" + arg;
+                      music.play();
+                    } else {
+                      music.pause();
+                    }
                   }
+                  break;
+                default:
+                  break;
               }
 
               this.params = [];

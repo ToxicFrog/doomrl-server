@@ -357,3 +357,33 @@ int32_t Mix_PlayChannelTimed(int32_t channel, const char * chunk, int32_t loops,
   }
   return 0;
 }
+
+//// SDL functions used for music playback. ////
+
+void * Mix_LoadMUS(const char * file) {
+  LOG("Mix_LoadMUS: %s\n", file);
+  if (strrchr(file, '/')) file = strrchr(file, '/')+1;
+  char * mus = malloc(strlen(file)+1);
+  strcpy(mus, file);
+  return mus;
+}
+
+int32_t Mix_PlayMusic(const void * mus, const int32_t loops) {
+  LOG("Mix_PlayMusic: %s\n", (char*)mus);
+  printf("\x1B]666;2;%s\x07", (char*)mus);
+  fflush(stdout);
+  return 0;
+}
+
+void Mix_HaltMusic() {
+  LOG("Mix_HaltMusic\n");
+  printf("\x1B]666;2;\x07");
+  fflush(stdout);
+  return;
+}
+
+void Mix_FreeMusic(void * mus) {
+  printf("\x1B]666;2;\x07");
+  free(mus);
+  return;
+}
