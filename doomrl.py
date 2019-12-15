@@ -8,7 +8,7 @@ import subprocess
 import syslog
 import xml.etree.ElementTree as etree
 
-from os.path import join,isdir,exists
+from os.path import join,isdir,exists,lexists
 from collections import defaultdict
 
 # Global state
@@ -29,8 +29,9 @@ def init(doom, data, user):
   syslog.syslog('DoomRL player data path: %s' % _user_path)
   os.makedirs(join(_user_path, 'players'), exist_ok=True)
   os.makedirs(join(_user_path, 'www'), exist_ok=True)
-  if not exists(join(_user_path, 'www/static')):
-    os.symlink(join(_data_path, 'www'), join(_user_path, 'www/static'))
+  if lexists(join(_user_path, 'www/static')):
+    os.unlink(join(_user_path, 'www/static'))
+  os.symlink(join(_data_path, 'www'), join(_user_path, 'www/static'))
 
 
 def debug():
