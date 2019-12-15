@@ -2480,6 +2480,22 @@ var Terminal = function (_EventEmitter) {
                 case 118:
                   // reset colors
                   break;
+                case 666:
+                  // DoomRL-specific extension
+                  // OSC 666 ; 1 ; Snd ST
+                  // Load and play the sound /sfx/<Snd>.flac
+                  let [cmd,arg] = this.params[1].split(";");
+                  if (cmd == "1") {
+                    // console.log("PLAY SOUND:", arg);
+                    let audio = document.createElement("audio");
+                    audio.src = "/static/sfx/" + arg + ".flac";
+                    audio.setAttribute("controls", "none");
+                    audio.style.display = "none";
+                    audio.play();
+                  } else if (cmd == "2") {
+                    console.log("PLAY MUSIC", arg);
+                    // Not yet implemented
+                  }
               }
 
               this.params = [];

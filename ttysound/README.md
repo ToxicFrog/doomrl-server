@@ -21,7 +21,7 @@ There is currently no support for directionality and distance of sound, but this
   - *If you want to keep your configuration*: do not overwrite `config.lua`; instead, add the following lines at the end:
   ```
   ClosedCaptions = true
-  ClosedCaptionStyle = 'fancy'
+  ClosedCaptionStyle = 'fancy+sfx'
   NightmareClosedCaptionStyle = 'full'
   dofile 'cc/config.lua'
   ```
@@ -40,7 +40,7 @@ There is currently no support for directionality and distance of sound, but this
 - Edit `config.lua` and add the following lines at the end:
   ```
   ClosedCaptions = true
-  ClosedCaptionStyle = 'fancy'
+  ClosedCaptionStyle = 'fancy+sfx'
   NightmareClosedCaptionStyle = 'full'
   dofile 'cc/config.lua'
   ```
@@ -74,13 +74,17 @@ Controls how they are displayed.
 - `ClosedCaptionStyle = 'fancy'` uses colourful symbols that match the in-game enemy symbols, and is suitable for use in the terminal.
 - `ClosedCaptionStyle = 'plain'` uses monochrome symbols, and is suitable for use in graphical mode (or on terminals that don't support colour).
 - `ClosedCaptionStyle = 'raw'` displays raw event IDs and is primarily useful for debugging.
-- `ClosedCaptionStyle = 'auto'` is equivalent to `'fancy'` if `Graphics = 'CONSOLE'` in your main configuration file, and equivalent to `'plain'` otherwise. Note that this is not 100% reliable -- if you are overriding the `Graphics` setting with the `-console` or `-graphics` command line options, *it won't know that*.
+- `ClosedCaptionStyle = 'sfx'` does not display anything on screen, but instead sends special terminal control codes that will be used to play the actual sounds, if you are using a compatible terminal. (At the moment, that just means the doomrl-server web terminal; it will not work with other ttys.)
+- `ClosedCaptionStyle = 'fancy+sfx'` is equivalent to `fancy`, but includes the control codes from `sfx` as well, so it will both display fancy closed caption icons and, if possible, play the sounds.
+- `ClosedCaptionStyle = 'auto'` is equivalent to `'fancy+sfx'` if `Graphics = 'CONSOLE'` in your main configuration file, and equivalent to `'plain'` otherwise. Note that this is not 100% reliable -- if you are overriding the `Graphics` setting with the `-console` or `-graphics` command line options, *it won't know that*.
 
 `'auto'` is the default.
 
 ### NightmareClosedCaptionStyle
 
 Controls how sounds for Nightmare creature variants are displayed.
+
+*This setting is currently ignored.*
 
 - `NightmareClosedCaptionStyle = 'full'` gives each nightmare creature its own set of captions.
 - `NightmareClosedCaptionStyle = 'limited'` gives each nightmare creature the captions from the equivalent non-nightmare creature, so you can still "hear" them, but can't distinguish them from ordinary enemies.
