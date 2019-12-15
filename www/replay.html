@@ -7,19 +7,23 @@
     <script src="websock.js"></script>
     <script src="wstelnet.js"></script>
     <script src="xterm2.js"></script>
-    <script>
-      function setMusicVolume(value) {
-        document.getElementById('music').volume = value/100.0;
-      }
-      function focusTTY() {
-        document.getElementById('terminal-div').firstChild.focus();
-      }
-    </script>
   </head>
   <body>
     <div id="terminal-div"></div>
-    <div style="position: absolute; left: 0; top: 0;">
-    <pre>
+    <div style="position:absolute; right:0; bottom:0; display:block;">
+      <input type="range" id="position"
+        min=0 max=1.0 value=0.0 step=0.01
+        oninput="centerTTY(this.value); focusTTY();"><label>⇆</label><br>
+      <input type="range" id="vol:sfx"
+        min=0 max=100 value=100 step=1
+        onchange="focusTTY();"><label>🔊</label><br>
+      <input type="range" id="vol:music"
+        min=0 max=100 value=100 step=1
+        onchange="setMusicVolume(this.value); focusTTY();"><label>♫</label>
+      <audio style="position:absolute; right:0; bottom:0; display:none;" id="music" loop=true volume=0.5></audio>
+    </div>
+    <div style="position: absolute; right: 0; top: 0; padding-right: 1em;">
+      <pre>
 Replay Mode
  'f'  faster
  's'  slower
@@ -36,22 +40,13 @@ Replay Mode
 <a id="download-link" href="">Download TTYRec</a>
 </pre>
     </div>
-    <div style="position:absolute; right:0; bottom:0; display:block;">
-      <input type="range" id="vol:sfx"
-        min=0 max=100 value=100 step=1
-        onchange="focusTTY();"><label>🔊</label><br>
-      <input type="range" id="vol:music"
-        min=0 max=100 value=100 step=1
-        onchange="setMusicVolume(this.value); focusTTY();"><label>♫</label>
-    </div>
-    <audio style="position:absolute; right:0; bottom:0; display:none;" id="music" loop=true volume=0.5></audio>
     <script>
       var $ = function(sel) { return  document.querySelector(sel) };
       var [_, player, game] = window.location.hash.match("#(.*?)/([0-9]+)");
       $("#download-link").href = "players/"+player+"/"+game+".ttyrec";
 
       // Hostname to connect to.
-      DOOMRL_HOST = window.location.hostname || "localhost";
+      DOOMRL_HOST = "phobos.ancilla.ca" //window.location.hostname || "localhost";
       // Port that the Websockify proxy is listening on.
       DOOMRL_WS_PORT = 3667;
       // Enable debug logging.

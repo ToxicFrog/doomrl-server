@@ -22,10 +22,20 @@ function createTerminal() {
   return term;
 }
 
-function centerTerminal() {
+function setMusicVolume(value) {
+  document.getElementById('music').volume = value/100.0;
+}
+
+function focusTTY() {
+  document.getElementById('terminal-div').firstChild.focus();
+}
+
+function centerTTY() {
+  console.log("Centering terminal");
+  var position = $('#position').value;
   var terminalContainer = $('#terminal-div');
   var rows = $(".xterm-rows");
-  rows.style.left = Math.floor((terminalContainer.offsetWidth - rows.offsetWidth)/2) + "px";
+  rows.style.left = Math.max(0,Math.floor((terminalContainer.offsetWidth - rows.offsetWidth)*position)) + "px";
 }
 
 function connected(telnet, tty) {
@@ -45,5 +55,8 @@ function disconnected(telnet, tty) {
 console.log(DOOMRL_HOST)
 var telnet = Telnet(createTerminal(), connected, disconnected);
 telnet.connect(DOOMRL_HOST, DOOMRL_WS_PORT, true /* use ssl */)
-setTimeout(centerTerminal, 100)
 
+window.addEventListener('resize', function() {
+  setTimeout(centerTTY, 100);
+})
+setTimeout(centerTTY, 100);
