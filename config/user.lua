@@ -32,11 +32,14 @@ BlindMode        = false
 ColorBlindMode   = false
 
 -- Configure closed caption support.
+-- "sfx" plays sounds (in the browser) but displays nothing.
 -- "fancy" shows you monster symbols with colour.
+-- "fancy+sfx" combines both, playing sounds and showing symbols.
 -- "plain" shows you monster symbols with no colour.
 -- "raw" shows you raw event names, and is mostly useful for debugging.
+-- "default" is server-specific but was "fancy+sfx" when this file was created.
 ClosedCaptions = true
-ClosedCaptionStyle = 'fancy'
+ClosedCaptionStyle = 'default'
 
 -- Control how Nightmare enemies ("nightmare ___" and "elite ___") are handled
 -- by the closed captions.
