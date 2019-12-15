@@ -2488,9 +2488,10 @@ var Terminal = function (_EventEmitter) {
                   if (cmd == "1") {
                     // console.log("PLAY SOUND:", arg);
                     let audio = document.createElement("audio");
-                    audio.src = "/static/sfx/" + arg + ".flac";
-                    audio.setAttribute("controls", "none");
+                    audio.controls = false;
                     audio.style.display = "none";
+                    audio.volume = document.getElementById("vol:sfx").value / 100.0;
+                    audio.src = "/static/sfx/" + arg + ".flac";
                     audio.play();
                   } else if (cmd == "2") {
                     console.log("PLAY MUSIC", arg);

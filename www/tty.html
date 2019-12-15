@@ -1,15 +1,32 @@
 <!doctype html>
 <html>
   <head>
+    <meta charset="UTF-8">
     <title>DoomRL</title>
     <link rel="stylesheet" href="xterm.css" />
     <script src="websock.js"></script>
     <script src="wstelnet.js"></script>
     <script src="xterm2.js"></script>
+    <script>
+      function setMusicVolume(value) {
+        document.getElementById('music').volume = value/100.0;
+      }
+      function focusTTY() {
+        document.getElementById('terminal-div').firstChild.focus();
+      }
+    </script>
   </head>
   <body>
     <div id="terminal-div"></div>
-    <audio style="position:absolute; right:0; bottom:0; display:none;" id="music" controls loop=true>
+    <div style="position:absolute; right:0; bottom:0; display:block;">
+      <input type="range" id="vol:sfx"
+        min=0 max=100 value=100 step=1
+        onchange="focusTTY();"><label>🔊</label><br>
+      <input type="range" id="vol:music"
+        min=0 max=100 value=100 step=1
+        onchange="setMusicVolume(this.value); focusTTY();"><label>♫</label>
+    </div>
+    <audio style="position:absolute; right:0; bottom:0; display:none;" id="music" loop=true volume=0.5></audio>
     <script>
       // Hostname to connect to.
       DOOMRL_HOST = window.location.hostname || "localhost";
