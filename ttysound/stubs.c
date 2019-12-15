@@ -8,7 +8,7 @@
 #include <stdint.h>
 
 void die(const char * msg) {
-  fprintf(stderr, "FATAL: %s\n", msg);
+  fprintf(stderr, "\x1B[?1049l\x1B" "c\x1B[!p\x1B[2JFATAL: %s\n", msg);
   exit(1);
 }
 
