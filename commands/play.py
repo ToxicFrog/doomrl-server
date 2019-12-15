@@ -7,10 +7,10 @@ import sys
 import tty
 
 from commands import Command
-from os.path import exists,lexists
+from os.path import exists,lexists,islink
+from stat import S_IRUSR,S_IWUSR
 from syslog import syslog as log
 from ttyrec import TTYRec
-
 
 class PlayCommand(Command):
   """play <name> -- start or continue a game of DoomRL.
@@ -35,13 +35,14 @@ class PlayCommand(Command):
     # We need to do this on each run because the doomrl or doomrl-server install
     # location may have changed since the last run, invalidating the old symlinks.
     for file in ['core.wad', 'doomrl', 'doomrl.wad']:
-      if lexists(doomrl.homepath(file)):
+      if islink(doomrl.homepath(file)):
         os.unlink(doomrl.homepath(file))
       os.symlink(doomrl.doompath(file), doomrl.homepath(file))
     for file in os.listdir(doomrl.datapath('config')):
-      if lexists(doomrl.homepath(file)):
+      if islink(doomrl.homepath(file)):
         os.unlink(doomrl.homepath(file))
-      os.symlink(doomrl.datapath('config', file), doomrl.homepath(file))
+      if not exists(doomrl.homepath(file)):
+        os.symlink(doomrl.datapath('config', file), doomrl.homepath(file))
 
     # If the player has a game in progress, restore their ttyrec and save.
     if exists(doomrl.homepath('saves', name + '.ttyrec')):
