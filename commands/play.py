@@ -85,7 +85,13 @@ class PlayCommand(Command):
       # This will return when DoomRL closes the fd.
       # It will also automatically reset the TTY on leaving the 'with' block.
       rec.ttyrec(in_fd=rpipe)
-    self.child.wait()
+    try:
+      self.child.wait()
+    except Exception as e:
+      import traceback
+      log('Error while DoomRL was running: ' + traceback.format_exc())
+      self.child.kill()
+      raise e
     self.child = None
 
   def list_running_games(self):
