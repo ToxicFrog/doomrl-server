@@ -70,6 +70,7 @@ def sighup(sig, frame):
       os.remove(doomrl.homepath('ttyrec'))
     except:
       pass
+  sys.exit(1)
 
 def readconfig(args):
   conf = {
