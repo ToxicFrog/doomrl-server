@@ -734,19 +734,20 @@ var Viewport = function () {
     key: 'refresh',
     value: function refresh(charSize) {
       var size = charSize || this.charMeasureElement.getBoundingClientRect();
-      if (size.height > 0) {
-        var rowHeightChanged = size.height !== this.currentRowHeight;
+      var height = (100 / this.terminal.rows);
+      if (height) {
+        var rowHeightChanged = height !== this.currentRowHeight;
         if (rowHeightChanged) {
-          this.currentRowHeight = size.height;
-          this.viewportElement.style.lineHeight = size.height + 'px';
-          this.terminal.rowContainer.style.lineHeight = size.height + 'px';
+          this.currentRowHeight = height;
+          this.viewportElement.style.lineHeight = height + "vh";
+          this.terminal.rowContainer.style.lineHeight = height + "vh";
         }
         var viewportHeightChanged = this.lastRecordedViewportHeight !== this.terminal.rows;
         if (rowHeightChanged || viewportHeightChanged) {
           this.lastRecordedViewportHeight = this.terminal.rows;
-          this.viewportElement.style.height = size.height * this.terminal.rows + 'px';
+          this.viewportElement.style.height = "100vh";
         }
-        this.scrollArea.style.height = size.height * this.lastRecordedBufferLength + 'px';
+        this.scrollArea.style.height = height * this.lastRecordedBufferLength + 'vh';
       }
     }
 
