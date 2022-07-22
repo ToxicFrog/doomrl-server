@@ -12,9 +12,34 @@ if (DOOMRL_DEBUG) {
 Util.Warn = console.log;
 Util.Error = console.log;
 
+function osc666handler(params) {
+  console.log("osc 666:");
+  params.map(console.log);
+}
+
+const TTY_OPTIONS = {
+  altClickMovesCursor: false,
+  bellStyle: 'none',
+  cursorBlink: 'false',
+  cursorStyle: 'block',
+  // drawBoldTextInBrightColors: false,
+  theme: {
+    foreground: '#FFFFFF',
+    background: '#000000',
+    black: '#000000',
+    // brightBlack: '#000000',
+  },
+  windowOptions: {
+    getWinSizeChars: true,
+    getScreenSizeChars: true,
+  },
+};
+
 function createTerminal() {
-  var term = new Terminal();
+  var term = new Terminal(TTY_OPTIONS);
   var terminalContainer = $('#terminal-div');
+
+  term.registerOscHandler(666, osc666handler);
 
   term.open(terminalContainer);
   term.resize(80, 26);
@@ -34,8 +59,8 @@ function centerTTY() {
   console.log("Centering terminal");
   var position = $('#position').value;
   var terminalContainer = $('#terminal-div');
-  var rows = $(".xterm-rows");
-  rows.style.left = Math.max(0,Math.floor((terminalContainer.offsetWidth - rows.offsetWidth)*position)) + "px";
+  var screen = $("div.xterm-screen");
+  screen.style.left = Math.max(0,Math.floor((terminalContainer.offsetWidth - screen.offsetWidth)*position)) + "px";
 }
 
 function connected(telnet, tty) {

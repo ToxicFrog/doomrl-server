@@ -211,8 +211,8 @@ function constructor() {
     });
 
     // Set handler for sending characters
-    tty.on('data', function(data) {
-      sQ.pushStr(data);
+    tty.onKey(function(evt) {
+      sQ.pushStr(evt.key);
       do_send();
     })
 
