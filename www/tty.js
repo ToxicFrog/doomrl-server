@@ -17,6 +17,34 @@ function osc666handler(params) {
   params.map(console.log);
 }
 
+// OSC handling
+/*
+                case 666:
+                  // DoomRL-specific extension
+                  // OSC 666 ; 1 ; Snd ST
+                  // Load and play the sound /sfx/<Snd>.flac
+                  let [cmd,arg] = this.params[1].split(";");
+                  if (cmd == "1") {
+                    // console.log("PLAY SOUND:", arg);
+                    let audio = document.createElement("audio");
+                    audio.controls = false;
+                    audio.style.display = "none";
+                    audio.volume = document.getElementById("vol:sfx").value / 100.0;
+                    audio.src = "/static/sfx/" + arg + ".flac";
+                    audio.play();
+                  } else if (cmd == "2") {
+                    console.log("PLAY MUSIC", arg);
+                    let music = document.getElementById("music");
+                    if (arg) {
+                      music.src = "/static/music/" + arg;
+                      music.play();
+                    } else {
+                      music.pause();
+                    }
+                  }
+                  break;
+*/
+
 const TTY_OPTIONS = {
   altClickMovesCursor: false,
   bellStyle: 'none',
@@ -39,7 +67,7 @@ function createTerminal() {
   var term = new Terminal(TTY_OPTIONS);
   var terminalContainer = $('#terminal-div');
 
-  term.registerOscHandler(666, osc666handler);
+  term.parser.registerOscHandler(666, osc666handler);
 
   term.open(terminalContainer);
   term.resize(80, 26);

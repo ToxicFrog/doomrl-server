@@ -1,0 +1,11 @@
+body {
+    background-color: #000000;
+    color: #FFF;
+}
+
+.xterm {
+    background-color: #000;
+    color: #fff;
+    font-family: courier-new, courier, monospace;
+    font-feature-settings: "liga" 0;
+}
